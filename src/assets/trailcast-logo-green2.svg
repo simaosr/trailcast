@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <!-- Background circle -->
+  <circle cx="150" cy="150" r="130" fill="#48BB78" />
+  <circle cx="150" cy="150" r="120" fill="#38A169" />
+  
+  <!-- Mountain silhouette -->
+  <path d="M50 190 L120 100 L150 140 L180 110 L250 190 Z" fill="#2F855A" />
+  <path d="M80 190 L120 130 L150 160 L190 120 L230 190 Z" fill="#276749" />
+  
+  <!-- Sun -->
+  <circle cx="220" cy="80" r="25" fill="#FBBF24" />
+  <circle cx="220" cy="80" r="20" fill="#F59E0B" />
+  
+  <!-- Trail path with weather symbols -->
+  <path d="M80 220 Q120 200, 150 215 Q180 230, 220 210" stroke="#F9FAFB" stroke-width="4" stroke-linecap="round" stroke-dasharray="2,6" />
+  
+  <!-- Weather icon/cloud -->
+  <path d="M80 70 Q90 50, 110 60 Q125 40, 140 55 Q155 40, 165 60 Q180 55, 180 70 Q180 90, 160 90 L100 90 Q80 90, 80 70" fill="#E2E8F0" />
+  <line x1="95" y1="100" x2="90" y2="110" stroke="#93C5FD" stroke-width="3" stroke-linecap="round" />
+  <line x1="110" y1="100" x2="105" y2="115" stroke="#93C5FD" stroke-width="3" stroke-linecap="round" />
+  <line x1="125" y1="100" x2="120" y2="110" stroke="#93C5FD" stroke-width="3" stroke-linecap="round" />
+  <line x1="140" y1="100" x2="135" y2="115" stroke="#93C5FD" stroke-width="3" stroke-linecap="round" />
+  <line x1="155" y1="100" x2="150" y2="110" stroke="#93C5FD" stroke-width="3" stroke-linecap="round" />
+  
+  <!-- Compass arrow with red/yellow colors -->
+  <path d="M95 165 L105 175 L95 185 Z" fill="#E53E3E" />
+  <circle cx="95" cy="175" r="4" fill="#ECC94B" />
+  
+  <!-- App name -->
+  <text x="150" y="245" font-family="Arial, sans-serif" font-size="28" font-weight="bold" text-anchor="middle" fill="white">TRAILCAST</text>
+</svg>

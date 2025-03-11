@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 100">
+  <!-- Left circular logo element -->
+  <circle cx="50" cy="50" r="45" fill="#48BB78" />
+  <circle cx="50" cy="50" r="40" fill="#38A169" />
+  
+  <!-- Mountain silhouette -->
+  <path d="M20 70 L40 30 L50 45 L60 35 L80 70 Z" fill="#2F855A" />
+  <path d="M25 70 L40 40 L50 50 L65 35 L75 70 Z" fill="#276749" />
+  
+  <!-- Small sun -->
+  <circle cx="75" cy="25" r="8" fill="#FBBF24" />
+  <circle cx="75" cy="25" r="6" fill="#F59E0B" />
+  
+  <!-- Small weather icon -->
+  <path d="M25 25 Q30 15, 35 20 Q40 10, 45 18 Q50 12, 55 20 Q60 15, 60 25 Q60 35, 50 35 L35 35 Q25 35, 25 25" fill="#E2E8F0" />
+  <line x1="30" y1="40" x2="28" y2="44" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="37" y1="40" x2="35" y2="45" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="44" y1="40" x2="42" y2="44" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="51" y1="40" x2="49" y2="45" stroke="#93C5FD" stroke-width="1.5" stroke-linecap="round" />
+  
+  <!-- Small compass -->
+  <path d="M33 58 L37 62 L33 66 Z" fill="#E53E3E" />
+  <circle cx="33" cy="62" r="1.5" fill="#ECC94B" />
+  
+  <!-- Dotted trail -->
+  <path d="M25 65 Q35 60, 45 63 Q55 66, 65 60" stroke="#F9FAFB" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="1,3" />
+  
+  <!-- App name - larger text -->
+  <text x="270" y="60" font-family="Arial, sans-serif" font-size="42" font-weight="bold" text-anchor="middle" fill="#2F855A">TRAILCAST</text>
+  
+  <!-- Optional tagline -->
+  <text x="270" y="80" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="#4A5568">your hiking weather companion</text>
+</svg>
