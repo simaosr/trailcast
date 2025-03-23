@@ -1,0 +1,6 @@
+/* ./src/index.css */
+@import url(https://pro.fontawesome.com/releases/v5.10.0/css/all.css);
+@import "tailwindcss";
+@import "flowbite/src/themes/default";
+@plugin "flowbite/plugin";
+@source "../node_modules/flowbite";

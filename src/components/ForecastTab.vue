@@ -1,5 +1,9 @@
 <template>
-    <div id="tab2" class="tab-content" :class="{ active }">
+    <div id="tab3" class=" tab-content p-2 pb-16" :class="{ active }">
+        <div>
+            <input type="datetime-local" v-model="startTime" class="mb-4 p-2 border border-gray-300 rounded" />
+        </div>
+
         <weather-chart v-for="chart in chartTypes" :key="chart.id" :chart-id="chart.id" :label="chart.label"
             :color="chart.color" :data="chartData(chart.id)" :labels="timeLabels" />
     </div>
@@ -72,6 +76,11 @@ export default {
 .tab-content {
     display: none;
     padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+    padding: 20px;
+    margin-bottom: 20px;
 }
 
 .tab-content.active {
@@ -81,7 +90,12 @@ export default {
 @media (max-width: 600px) {
     .tab-content {
         margin-bottom: 50px;
+        height: 100%;
         padding: 15px;
+    }
+
+    #map-container {
+        height: calc(100% - 50px);
     }
 }
 

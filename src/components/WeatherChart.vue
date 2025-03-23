@@ -1,5 +1,5 @@
 <template>
-    <div class="profile-chart">
+<div class="">
         <canvas :id="chartId" ref="chartCanvas"></canvas>
     </div>
 </template>
@@ -171,12 +171,4 @@ export default {
 </script>
 
 <style scoped>
-.profile-chart {
-    width: 100%;
-    height: 300px;
-    margin-top: 20px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
 </style>
