@@ -1,16 +1,10 @@
 <template>
     <div id="tab2" class="tab-content" :class="{ active }">
-        <div>
-            <p>Name: {{ hikeData.name }}</p>
-            <p>Distance: {{ hikeData.distance }} km</p>
-            <p>Duration: {{ hikeData.duration }} hours</p>
-            <p>Elevation Gain: {{ hikeData.elevationGain }} m</p>
-        </div>
         <div id="map-container" class="p-3">
             <div id="map" class="h-full" ref="mapContainer"></div>
         </div>
         <div>
-            <forecast-week :days="hikeData.weather" />
+            <forecast-week :hike-data="hikeData" />
         </div>
     </div>
 </template>
@@ -20,6 +14,8 @@
 //primevue
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import L from 'leaflet';
+// import 'leaflet.fullscreen';  // Add this import
+// import 'leaflet.fullscreen/Control.FullScreen.css';  // Add this import
 import ForecastWeek from './ForecastWeek.vue';
 
 const mapContainer = ref(null);
@@ -38,12 +34,20 @@ const props = defineProps({
     },
 });
 
-// Initialize the map with route
+// Update the initMap function
 const initMap = (points) => {
     if (map) map.remove();
 
     if (mapContainer.value && points && points.length > 0) {
-        map = L.map(mapContainer.value).setView([points[0].lat, points[0].lon], 13);
+        map = L.map(mapContainer.value, {
+            fullscreenControl: true,  // Add this option
+            fullscreenControlOptions: {
+                position: 'topleft',
+                title: 'Show me the fullscreen !',
+                titleCancel: 'Exit fullscreen mode'
+            }
+        }).setView([points[0].lat, points[0].lon], 13);
+
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
         if (trackLayer) trackLayer.remove();
@@ -127,5 +131,20 @@ onUnmounted(() => {
         display: block;
         width: 50%;
     }
+}
+
+/* Add these styles */
+:deep(.leaflet-container.leaflet-fullscreen-on) {
+    height: 100vh !important;
+    width: 100vw !important;
+}
+
+:deep(.leaflet-pseudo-fullscreen) {
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 99999;
 }
 </style>

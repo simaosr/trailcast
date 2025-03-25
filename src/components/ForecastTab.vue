@@ -1,8 +1,10 @@
 <template>
     <div id="tab3" class=" tab-content p-2 pb-16" :class="{ active }">
-        <div>
+        <!-- <div class="flex flex-row items-start justify-evenly">
             <input type="datetime-local" v-model="startTime" class="mb-4 p-2 border border-gray-300 rounded" />
-        </div>
+            <button @click="loadHike"
+                class="px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-700">Forecast</button>
+        </div> -->
 
         <weather-chart v-for="chart in chartTypes" :key="chart.id" :chart-id="chart.id" :label="chart.label"
             :color="chart.color" :data="chartData(chart.id)" :labels="timeLabels" />
@@ -10,7 +12,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from 'vue';
+import { computed } from 'vue';
 import WeatherChart from '@/components/WeatherChart.vue';
 
 export default {
