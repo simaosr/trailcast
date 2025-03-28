@@ -68,7 +68,7 @@ export default class HikeService {
     const weatherData = []
 
     for (const pos of positions) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${pos.lat}&longitude=${pos.lon}&hourly=temperature_2m,windspeed_10m,precipitation,shortwave_radiation&elevation=${pos.elevation}&start=${pos.time.toISOString().split('.')[0]}&end=${pos.time.toISOString().split('.')[0]}`
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${pos.lat}&longitude=${pos.lon}&hourly=temperature_2m,windspeed_10m,precipitation,uv_index&elevation=${pos.elevation}&start=${pos.time.toISOString().split('.')[0]}&end=${pos.time.toISOString().split('.')[0]}`
 
       try {
         const response = await fetch(url)
@@ -77,7 +77,7 @@ export default class HikeService {
           temp: data.hourly.temperature_2m[0],
           wind: data.hourly.windspeed_10m[0],
           rain: data.hourly.precipitation[0],
-          sun: data.hourly.shortwave_radiation[0],
+          sun: data.hourly.uv_index[0],
           elevation: data.elevation,
         })
       } catch (error) {
