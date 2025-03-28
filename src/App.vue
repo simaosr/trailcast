@@ -43,9 +43,9 @@ const hikeData = reactive({
 
 const chartTypes = [
   { id: 'weatherChartTemp', label: 'Temperature (°C)', color: '#ff0000' },
-  { id: 'weatherChartWind', label: 'Wind (km/h)', color: '#0000ff' },
-  { id: 'weatherChartRain', label: 'Rain (mm)', color: '#00ff00' },
-  { id: 'weatherChartSun', label: 'Sun (W/m²)', color: '#ffff00' },
+  { id: 'weatherChartRain', label: 'Rain (mm)', color: '#0000ff' },
+  { id: 'weatherChartWind', label: 'Wind (km/h)', color: '#00ff00' },
+  { id: 'weatherChartSun', label: 'UV index', color: '#ffff00' },
   { id: 'weatherChartElevation', label: 'Elevation (m)', color: '#ff00ff' }
 ];
 
