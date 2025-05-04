@@ -1,0 +1,7 @@
+{
+    "compilerOptions": {
+      "allowJs": true, // Allows JavaScript files in the project
+      "checkJs": false // Prevents TypeScript from type-checking JavaScript files
+    },
+    "include": ["src/**/*"] // Adjust the path to include your files
+  }
