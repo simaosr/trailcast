@@ -1,13 +1,14 @@
 <template>
     <div>
         <!-- Today's Weather Card -->
-        <div class="w-full max-w-screen-sm bg-white p-10 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
+        <div class="w-full max-w-screen-sm bg-white p-5 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
             <div class="flex justify-between">
                 <div class="flex flex-col">
                     <div class="flex items-end">
-                        <span class="text-6xl font-bold">{{ forecast.length ? forecast[0].tempMax : '--' }}°C</span>
-                        <span class="text-xl text-gray-500 ml-2 mb-1">/ {{ forecast.length ? forecast[0].tempMin : '--'
-                            }}°C</span>
+                        <span class="text-6xl font-bold">{{ forecast.length ? forecast[0].tempMax : '--'
+                        }}</span>
+                        <span class="text-4xl text-gray-500 ml-2 mb-1">/ {{ forecast.length ? forecast[0].tempMin : '--'
+                        }}°C</span>
                     </div>
                     <span class="font-semibold mt-1 text-gray-500">{{ location || 'Loading...' }}</span>
                 </div>
@@ -58,7 +59,7 @@
 
         <!-- 7-Day Forecast Card -->
         <div
-            class="flex flex-col space-y-6 w-full max-w-screen-sm bg-white p-10 mt-10 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
+            class="flex flex-col space-y-6 w-full max-w-screen-sm bg-white p-5 mt-10 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
             <div v-for="(day, index) in forecast" :key="index" class="flex justify-between items-center">
                 <span class="font-semibold text-lg w-1/4">{{ formatDate(day.date) }}</span>
 
@@ -134,7 +135,13 @@ const fetchForecast = async (hikeData) => {
         }));
 
         // Also update hourly data if available
-        updateHourlyForecast(hikeData);
+        hourlyForecast.value = [
+            { temp: 29, condition: 'cloudy', time: '11:00', period: 'AM' },
+            { temp: 31, condition: 'sunny', time: '1:00', period: 'PM' },
+            { temp: 32, condition: 'cloudy', time: '3:00', period: 'PM' },
+            { temp: 31, condition: 'cloudy', time: '5:00', period: 'PM' },
+            { temp: 27, condition: 'night', time: '7:00', period: 'PM' }
+        ];
 
     } catch (error) {
         console.error('Error fetching forecast:', error);
@@ -151,19 +158,6 @@ const getLocationName = async (lat, lon) => {
         console.error('Error getting location name:', error);
         return 'Unknown Location';
     }
-};
-
-// Update hourly forecast based on available data
-const updateHourlyForecast = (hikeData) => {
-    // In a real implementation, you would fetch hourly data
-    // This is just a placeholder with dummy data
-    hourlyForecast.value = [
-        { temp: 29, condition: 'sunny', time: '11:00', period: 'AM' },
-        { temp: 31, condition: 'sunny', time: '1:00', period: 'PM' },
-        { temp: 32, condition: 'cloudy', time: '3:00', period: 'PM' },
-        { temp: 31, condition: 'cloudy', time: '5:00', period: 'PM' },
-        { temp: 27, condition: 'night', time: '7:00', period: 'PM' }
-    ];
 };
 
 // Format date to display in a more readable format
