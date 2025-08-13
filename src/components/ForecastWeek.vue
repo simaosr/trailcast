@@ -1,13 +1,14 @@
 <template>
     <div>
         <!-- Today's Weather Card -->
-        <div class="w-full max-w-screen-sm bg-white p-10 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
+        <div class="w-full max-w-screen-sm bg-white p-5 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
             <div class="flex justify-between">
                 <div class="flex flex-col">
                     <div class="flex items-end">
-                        <span class="text-6xl font-bold">{{ forecast.length ? forecast[0].tempMax : '--' }}°C</span>
-                        <span class="text-xl text-gray-500 ml-2 mb-1">/ {{ forecast.length ? forecast[0].tempMin : '--'
-                            }}°C</span>
+                        <span class="text-6xl font-bold">{{ forecast.length ? forecast[0].tempMax : '--'
+                        }}</span>
+                        <span class="text-4xl text-gray-500 ml-2 mb-1">/ {{ forecast.length ? forecast[0].tempMin : '--'
+                        }}°C</span>
                     </div>
                     <span class="font-semibold mt-1 text-gray-500">{{ location || 'Loading...' }}</span>
                 </div>
@@ -58,7 +59,7 @@
 
         <!-- 7-Day Forecast Card -->
         <div
-            class="flex flex-col space-y-6 w-full max-w-screen-sm bg-white p-10 mt-10 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
+            class="flex flex-col space-y-6 w-full max-w-screen-sm bg-white p-5 mt-10 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
             <div v-for="(day, index) in forecast" :key="index" class="flex justify-between items-center">
                 <span class="font-semibold text-lg w-1/4">{{ formatDate(day.date) }}</span>
 
@@ -116,14 +117,24 @@ const hourlyForecast = ref([
 const location = ref('');
 
 const fetchForecast = async (hikeData) => {
-    const startPosition = hikeData.positions[0];
+    // Use trackPoints if available, otherwise fallback to positions
+    const points = hikeData.trackPoints && hikeData.trackPoints.length > 0 ? hikeData.trackPoints : hikeData.positions;
+    if (!points || points.length === 0) {
+        forecast.value = [];
+        location.value = '';
+        return;
+    }
+    const startPosition = points[0];
     location.value = await getLocationName(startPosition.lat, startPosition.lon);
 
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${startPosition.lat}&longitude=${startPosition.lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,windgusts_10m_max,precipitation_sum&timezone=auto`;
+    // Fetch both daily and hourly forecasts for the start position
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${startPosition.lat}&longitude=${startPosition.lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,windgusts_10m_max,precipitation_sum&hourly=temperature_2m,precipitation_probability,weathercode&timezone=auto`;
 
     try {
         const response = await fetch(url);
         const data = await response.json();
+        
+        // Update daily forecast
         forecast.value = data.daily.time.map((date, index) => ({
             date,
             tempMax: Math.round(data.daily.temperature_2m_max[index]),
@@ -133,8 +144,26 @@ const fetchForecast = async (hikeData) => {
             rain: data.daily.precipitation_sum[index]
         }));
 
-        // Also update hourly data if available
-        updateHourlyForecast(hikeData);
+        // Update hourly forecast for the next 5 time slots
+        const currentHour = new Date().getHours();
+        const nextFiveHours = data.hourly.time
+            .map((time, index) => ({
+                time: new Date(time),
+                temp: Math.round(data.hourly.temperature_2m[index]),
+                rain: data.hourly.precipitation_probability[index],
+                weathercode: data.hourly.weathercode[index]
+            }))
+            .filter(hour => hour.time.getHours() > currentHour)
+            .slice(0, 5);
+
+        hourlyForecast.value = nextFiveHours.map(hour => ({
+            temp: hour.temp,
+            // Map weather codes to conditions and consider time of day
+            condition: hour.time.getHours() >= 20 || hour.time.getHours() <= 6 ? 'night' :
+                      hour.weathercode <= 1 ? 'sunny' : 'cloudy',
+            time: hour.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            period: hour.time.getHours() >= 12 ? 'PM' : 'AM'
+        }));
 
     } catch (error) {
         console.error('Error fetching forecast:', error);
@@ -153,19 +182,6 @@ const getLocationName = async (lat, lon) => {
     }
 };
 
-// Update hourly forecast based on available data
-const updateHourlyForecast = (hikeData) => {
-    // In a real implementation, you would fetch hourly data
-    // This is just a placeholder with dummy data
-    hourlyForecast.value = [
-        { temp: 29, condition: 'sunny', time: '11:00', period: 'AM' },
-        { temp: 31, condition: 'sunny', time: '1:00', period: 'PM' },
-        { temp: 32, condition: 'cloudy', time: '3:00', period: 'PM' },
-        { temp: 31, condition: 'cloudy', time: '5:00', period: 'PM' },
-        { temp: 27, condition: 'night', time: '7:00', period: 'PM' }
-    ];
-};
-
 // Format date to display in a more readable format
 const formatDate = (dateStr) => {
     const options = { weekday: 'short', day: 'numeric', month: 'short' };
@@ -176,7 +192,8 @@ const formatDate = (dateStr) => {
 
 // Watch for changes in hikeData and re-initialize the forecast
 watch(() => props.hikeData, (newHikeData) => {
-    if (newHikeData.positions && newHikeData.positions.length > 0) {
+    if ((newHikeData.trackPoints && newHikeData.trackPoints.length > 0) || 
+        (newHikeData.positions && newHikeData.positions.length > 0)) {
         fetchForecast(newHikeData);
     }
 }, { deep: true });

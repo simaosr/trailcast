@@ -42,11 +42,11 @@ const hikeData = reactive({
 });
 
 const chartTypes = [
-  { id: 'weatherChartTemp', label: 'Temperature (°C)', color: '#ff0000' },
-  { id: 'weatherChartRain', label: 'Rain (mm)', color: '#0000ff' },
-  { id: 'weatherChartWind', label: 'Wind (km/h)', color: '#00ff00' },
-  { id: 'weatherChartSun', label: 'UV index', color: '#ffff00' },
-  { id: 'weatherChartElevation', label: 'Elevation (m)', color: '#ff00ff' }
+  { id: 'weatherChartTemp', label: ['Temperature (°C)'], color: '#ff0000' },
+  { id: 'weatherChartRain', label: ['Rain (mm)'], color: '#0000ff' },
+  { id: 'weatherChartWind', label: ['Wind (km/h)'], color: '#00ff00' },
+  { id: 'weatherChartSun', label: ['UV index'], color: '#ffff00' },
+  { id: 'weatherChartElevation', label: ['Elevation (m)'], color: '#ff00ff' }
 ];
 
 // Methods
@@ -55,10 +55,10 @@ const setActiveTab = (tab) => {
 };
 
 const onHikeLoaded = (data) => {
-  hikeData.positions = data.positions;
-  hikeData.weather = data.weather;
   hikeData.trackPoints = data.trackPoints;
   hikeData.stats = data.stats;
+  hikeData.positions = [];
+  hikeData.weather = [];
 };
 
 // Lifecycle hooks

@@ -26,9 +26,8 @@
                     class="mb-4 p-2 border border-gray-300 rounded" />
                  -->
 
-                <h2 class="text-xl font-bold mb-4">2. Select starting date and time</h2>
 
-                <input type="datetime-local" v-model="startTime" class="mb-4 p-2 border border-gray-300 rounded" />
+                <!-- Removed date/time selection. Hike will be loaded without selecting start time. -->
 
                 <h2 class="text-xl font-bold mb-4">3. Fetch weather forecast</h2>
                 <button @click="loadHike" class="px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-700">Load
@@ -58,7 +57,7 @@ import { ref } from 'vue';
 import HikeService from '@/services/HikeService';
 
 const gpxInput = ref(null);
-const startTime = ref(new Date().toISOString().slice(0, 16));
+
 const selectedFile = ref(null);
 const fileIsSelected = ref(false)
 
@@ -91,26 +90,16 @@ const loadHike = async () => {
         alert('Please select a GPX file');
         return;
     }
-    if (!startTime.value) {
-        alert('Please select a start time');
-        return;
-    }
 
-    // try {
-    // Process file and calculate positions
+
+
+    // Process file and parse GPX
     const gpxText = await selectedFile.value.text();
     const trackPoints = hikeService.parseGPX(gpxText);
-    const positions = hikeService.calculatePositions(trackPoints, new Date(startTime.value));
 
-    // Fetch weather for calculated positions
-    const weather = await hikeService.fetchWeatherData(positions);
-
-
-    // Create complete hike data object
+    // Create hike data object (no positions or weather yet)
     const hikeData = {
-        trackPoints,
-        positions,
-        weather
+        trackPoints
     };
 
     // calculate hike stats
