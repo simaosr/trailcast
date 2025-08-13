@@ -55,10 +55,10 @@ const setActiveTab = (tab) => {
 };
 
 const onHikeLoaded = (data) => {
-  hikeData.positions = data.positions;
-  hikeData.weather = data.weather;
   hikeData.trackPoints = data.trackPoints;
   hikeData.stats = data.stats;
+  hikeData.positions = [];
+  hikeData.weather = [];
 };
 
 // Lifecycle hooks

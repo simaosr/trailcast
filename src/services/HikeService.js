@@ -130,12 +130,12 @@ export default class HikeService {
       stats.denivele += b.elevation - a.elevation
     }
     // calculate metrics from weather data
-    for (let i = 0; i < weatherData.length; i++) {
+/*     for (let i = 0; i < weatherData.length; i++) {
       stats.accumulatedRain += weatherData[i].rain
       stats.maxWind = Math.max(stats.maxWind, weatherData[i].wind)
       stats.maxTemp = Math.max(stats.maxTemp, weatherData[i].temp)
       stats.minTemp = Math.min(stats.minTemp, weatherData[i].temp)
-    }
+    } */
     return stats
   }
 }

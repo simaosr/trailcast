@@ -1,19 +1,22 @@
 <template>
     <div id="tab3" class=" tab-content p-2 pb-16" :class="{ active }">
-        <!-- <div class="flex flex-row items-start justify-evenly">
+        <div class="flex flex-row items-start justify-evenly mb-4">
             <input type="datetime-local" v-model="startTime" class="mb-4 p-2 border border-gray-300 rounded" />
-            <button @click="loadHike"
-                class="px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-700">Forecast</button>
-        </div> -->
+            <button @click="fetchForecast" class="px-4 py-2 bg-emerald-500 text-white rounded hover:bg-emerald-700 ml-2">Fetch Forecast</button>
+        </div>
 
-        <weather-chart v-for="chart in chartTypes" :key="chart.id" :chart-id="chart.id" :label="chart.label"
-            :color="chart.color" :data="chartData(chart.id)" :labels="timeLabels" />
+        <div v-if="hikeData.weather && hikeData.weather.length > 0">
+            <weather-chart v-for="chart in chartTypes" :key="chart.id" :chart-id="chart.id" :label="chart.label"
+                :color="chart.color" :data="chartData(chart.id)" :labels="timeLabels" />
+        </div>
+        <div v-else class="text-gray-500">No forecast data available. Please select a start date/time and fetch forecast.</div>
     </div>
 </template>
 
 <script>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import WeatherChart from '@/components/WeatherChart.vue';
+import HikeService from '@/services/HikeService';
 
 export default {
     name: 'ForecastTab',
@@ -35,12 +38,14 @@ export default {
         }
     },
     setup(props) {
+        const startTime = ref(new Date().toISOString().slice(0, 16));
+        const hikeService = new HikeService();
+
         // Create time labels for x-axis
         const timeLabels = computed(() => {
             if (!props.hikeData.positions || props.hikeData.positions.length === 0) {
                 return [];
             }
-
             return props.hikeData.positions.map((_, i) => `${i * 0.5}h`);
         });
 
@@ -49,7 +54,6 @@ export default {
             if (!props.hikeData.weather || props.hikeData.weather.length === 0) {
                 return [];
             }
-
             switch (chartId) {
                 case 'weatherChartTemp':
                     return props.hikeData.weather.map(w => w.temp);
@@ -66,9 +70,26 @@ export default {
             }
         };
 
+        // Fetch forecast for the hike
+        const fetchForecast = async () => {
+            if (!props.hikeData.trackPoints || props.hikeData.trackPoints.length === 0) {
+                alert('No hike loaded.');
+                return;
+            }
+            // Calculate positions
+            const positions = hikeService.calculatePositions(props.hikeData.trackPoints, new Date(startTime.value));
+            // Fetch weather for positions
+            const weather = await hikeService.fetchWeatherData(positions);
+            // Update hikeData
+            props.hikeData.positions = positions;
+            props.hikeData.weather = weather;
+        };
+
         return {
+            startTime,
             timeLabels,
-            chartData
+            chartData,
+            fetchForecast
         };
     }
 };
