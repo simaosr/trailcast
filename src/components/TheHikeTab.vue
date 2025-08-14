@@ -48,10 +48,33 @@ const initMap = (points) => {
             }
         }).setView([points[0].lat, points[0].lon], 13);
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+        }).addTo(map);
 
         if (trackLayer) trackLayer.remove();
         trackLayer = L.polyline(points.map(p => [p.lat, p.lon]), { color: 'blue' }).addTo(map);
+
+        // Add start marker (green)
+        L.marker([points[0].lat, points[0].lon], {
+            icon: L.divIcon({
+                className: 'custom-div-icon',
+                html: '<div style="background-color: #4CAF50; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        }).addTo(map).bindPopup('Start');
+
+        // Add finish marker (red)
+        L.marker([points[points.length - 1].lat, points[points.length - 1].lon], {
+            icon: L.divIcon({
+                className: 'custom-div-icon',
+                html: '<div style="background-color: #f44336; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        }).addTo(map).bindPopup('Finish');
 
         // Ensure map is properly sized
         setTimeout(() => {

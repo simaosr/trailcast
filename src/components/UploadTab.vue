@@ -97,14 +97,13 @@ const loadHike = async () => {
     const gpxText = await selectedFile.value.text();
     const trackPoints = hikeService.parseGPX(gpxText);
 
-    // Create hike data object (no positions or weather yet)
+    // Create hike data object with original track points
     const hikeData = {
-        trackPoints
+        trackPoints: trackPoints,
+        // We'll calculate positions and weather data later when needed
+        positions: [],
+        weather: []
     };
-
-    // calculate hike stats
-    const hikeStats = await hikeService.calculateHikeStats(hikeData);
-    hikeData.stats = hikeStats;
 
     // Save to local storage
     localStorage.setItem('hikeData', JSON.stringify(hikeData));
