@@ -63,36 +63,10 @@ export default class HikeService {
     return positions
   }
 
-  // Fetch weather data for each position
+  // Fetch weather data for each position using WeatherService
   async fetchWeatherData(positions) {
-    const weatherData = []
-
-    for (const pos of positions) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${pos.lat}&longitude=${pos.lon}&hourly=temperature_2m,windspeed_10m,precipitation,uv_index&elevation=${pos.elevation}&start=${pos.time.toISOString().split('.')[0]}&end=${pos.time.toISOString().split('.')[0]}`
-
-      try {
-        const response = await fetch(url)
-        const data = await response.json()
-        weatherData.push({
-          temp: data.hourly.temperature_2m[0],
-          wind: data.hourly.windspeed_10m[0],
-          rain: data.hourly.precipitation[0],
-          sun: data.hourly.uv_index[0],
-          elevation: data.elevation,
-        })
-      } catch (error) {
-        console.error('Weather fetch error:', error)
-        weatherData.push({
-          temp: 0,
-          wind: 0,
-          rain: 0,
-          sun: 0,
-          elevation: pos.elevation || 0,
-        })
-      }
-    }
-
-    return weatherData
+    const { WeatherService } = await import('./WeatherService')
+    return WeatherService.getWeatherDataForPositions(positions)
   }
 
   // Calculate distance between two points using Haversine formula

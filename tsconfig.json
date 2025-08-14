@@ -1,7 +1,18 @@
 {
-    "compilerOptions": {
-      "allowJs": true, // Allows JavaScript files in the project
-      "checkJs": false // Prevents TypeScript from type-checking JavaScript files
-    },
-    "include": ["src/**/*"] // Adjust the path to include your files
-  }
+  "compilerOptions": {
+    "target": "ES2015",
+    "module": "ES2015",
+    "lib": ["ES2015", "DOM", "DOM.Iterable"],
+    "moduleResolution": "node",
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "jsx": "preserve"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
