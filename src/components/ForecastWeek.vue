@@ -98,6 +98,8 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
+import { WeatherService } from '../services/WeatherService';
+import { DateService } from '../services/DateService';
 
 const props = defineProps({
     hikeData: {
@@ -107,13 +109,7 @@ const props = defineProps({
 });
 
 const forecast = ref([]);
-const hourlyForecast = ref([
-    { temp: 29, condition: 'sunny', time: '11:00', period: 'AM' },
-    { temp: 31, condition: 'sunny', time: '1:00', period: 'PM' },
-    { temp: 32, condition: 'cloudy', time: '3:00', period: 'PM' },
-    { temp: 31, condition: 'cloudy', time: '5:00', period: 'PM' },
-    { temp: 27, condition: 'night', time: '7:00', period: 'PM' }
-]);
+const hourlyForecast = ref([]);
 const location = ref('');
 
 const fetchForecast = async (hikeData) => {
@@ -124,71 +120,28 @@ const fetchForecast = async (hikeData) => {
         location.value = '';
         return;
     }
-    const startPosition = points[0];
-    location.value = await getLocationName(startPosition.lat, startPosition.lon);
-
-    // Fetch both daily and hourly forecasts for the start position
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${startPosition.lat}&longitude=${startPosition.lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,windgusts_10m_max,precipitation_sum&hourly=temperature_2m,precipitation_probability,weathercode&timezone=auto`;
 
     try {
-        const response = await fetch(url);
-        const data = await response.json();
+        const startPosition = {
+            lat: points[0].lat,
+            lon: points[0].lon
+        };
+
+        const weatherData = await WeatherService.getForecast(startPosition);
         
-        // Update daily forecast
-        forecast.value = data.daily.time.map((date, index) => ({
-            date,
-            tempMax: Math.round(data.daily.temperature_2m_max[index]),
-            tempMin: Math.round(data.daily.temperature_2m_min[index]),
-            wind: Math.round(data.daily.windspeed_10m_max[index]),
-            gust: Math.round(data.daily.windgusts_10m_max[index]),
-            rain: data.daily.precipitation_sum[index]
-        }));
-
-        // Update hourly forecast for the next 5 time slots
-        const currentHour = new Date().getHours();
-        const nextFiveHours = data.hourly.time
-            .map((time, index) => ({
-                time: new Date(time),
-                temp: Math.round(data.hourly.temperature_2m[index]),
-                rain: data.hourly.precipitation_probability[index],
-                weathercode: data.hourly.weathercode[index]
-            }))
-            .filter(hour => hour.time.getHours() > currentHour)
-            .slice(0, 5);
-
-        hourlyForecast.value = nextFiveHours.map(hour => ({
-            temp: hour.temp,
-            // Map weather codes to conditions and consider time of day
-            condition: hour.time.getHours() >= 20 || hour.time.getHours() <= 6 ? 'night' :
-                      hour.weathercode <= 1 ? 'sunny' : 'cloudy',
-            time: hour.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            period: hour.time.getHours() >= 12 ? 'PM' : 'AM'
-        }));
-
+        forecast.value = weatherData.daily;
+        hourlyForecast.value = weatherData.hourly;
+        location.value = weatherData.location;
     } catch (error) {
         console.error('Error fetching forecast:', error);
+        forecast.value = [];
+        hourlyForecast.value = [];
+        location.value = 'Error loading location';
     }
 };
 
-// Helper function to get location name from coordinates
-const getLocationName = async (lat, lon) => {
-    try {
-        // You might want to use a reverse geocoding service here
-        // This is a placeholder - in a real app you would call an API
-        return 'Trail Start, Mountain Range';
-    } catch (error) {
-        console.error('Error getting location name:', error);
-        return 'Unknown Location';
-    }
-};
-
-// Format date to display in a more readable format
-const formatDate = (dateStr) => {
-    const options = { weekday: 'short', day: 'numeric', month: 'short' };
-    const date = new Date(dateStr);
-    // return `${date.toLocaleDateString(undefined, { weekday: 'short' })}, ${date.getDate()} ${date.toLocaleDateString(undefined, { month: 'short' })}`;
-    return `${date.getDate()} ${date.toLocaleDateString(undefined, { month: 'short' })}`;
-};
+// Format date using DateService
+const formatDate = (dateStr) => DateService.formatDate(dateStr);
 
 // Watch for changes in hikeData and re-initialize the forecast
 watch(() => props.hikeData, (newHikeData) => {
