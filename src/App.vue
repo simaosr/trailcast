@@ -4,7 +4,7 @@
     <div class="main-content flex flex-col md:flex-row">
       <upload-tab :active="activeTab === 'tab1' || isDesktop" @hike-loaded="onHikeLoaded" />
       <forecast-week :active="activeTab === 'tab2' || isDesktop" :hike-data="hikeData" />
-      <forecast-tab :active="activeTab === 'tab3' || isDesktop" :hike-data="hikeData" :chart-types="chartTypes" />
+      <forecast-tab :active="activeTab === 'tab3' || isDesktop" :hike-data="hikeData" :chart-types="chartTypes" @forecast-updated="onForecastUpdated" />
       <!-- Mobile navigation - only shown on small screens -->
       <tab-navigation :is-desktop="isDesktop" :active-tab="activeTab" @tab-changed="setActiveTab" />
     </div>
@@ -40,7 +40,7 @@ const hikeData = reactive({
 const chartTypes = [
   { id: 'weatherChartTemp', label: ['Temperature (°C)'], color: '#ef4444' },
   { id: 'weatherChartRainProb', label: ['Rain Probability (%)'], color: '#3b82f6' },
-  { id: 'weatherChartRain', label: ['Precipitation (mm)'], color: '#60a5fa' },
+  { id: 'weatherChartRain', label: ['Precipitation (mm/h)'], color: '#60a5fa' },
   { id: 'weatherChartWind', label: ['Wind (km/h)'], color: '#10b981' },
   { id: 'weatherChartSun', label: ['UV Index'], color: '#f59e0b' },
   { id: 'weatherChartElevation', label: ['Elevation (m)'], color: '#8b5cf6' }
@@ -49,6 +49,11 @@ const chartTypes = [
 // Methods
 const setActiveTab = (tab) => {
   activeTab.value = tab;
+};
+
+const onForecastUpdated = ({ positions, weather }) => {
+  hikeData.positions = positions;
+  hikeData.weather = weather;
 };
 
 const onHikeLoaded = (data) => {

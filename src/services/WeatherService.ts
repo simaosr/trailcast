@@ -33,6 +33,7 @@ interface ExtendedWeatherPosition {
 interface PositionWeatherData {
     temp: number;
     wind: number;
+    gust: number;
     rain: number;
     rainProbability: number;
     sun: number;
@@ -135,7 +136,7 @@ export class WeatherService {
 
     static async getWeatherDataForPosition(position: ExtendedWeatherPosition): Promise<PositionWeatherData> {
         const dateStr = position.time.toISOString().split('T')[0]; // YYYY-MM-DD
-        const url = `${this.BASE_URL}?latitude=${position.lat}&longitude=${position.lon}&hourly=temperature_2m,windspeed_10m,precipitation,precipitation_probability,uv_index&elevation=${position.elevation || 0}&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
+        const url = `${this.BASE_URL}?latitude=${position.lat}&longitude=${position.lon}&hourly=temperature_2m,windspeed_10m,windgusts_10m,precipitation,precipitation_probability,uv_index&elevation=${position.elevation || 0}&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
 
         try {
             const response = await fetch(url);
@@ -147,6 +148,7 @@ export class WeatherService {
             return {
                 temp: data.hourly.temperature_2m[hour],
                 wind: data.hourly.windspeed_10m[hour],
+                gust: data.hourly.windgusts_10m[hour],
                 rain: data.hourly.precipitation[hour],
                 rainProbability: data.hourly.precipitation_probability[hour],
                 sun: data.hourly.uv_index[hour],
@@ -157,6 +159,7 @@ export class WeatherService {
             return {
                 temp: 0,
                 wind: 0,
+                gust: 0,
                 rain: 0,
                 rainProbability: 0,
                 sun: 0,

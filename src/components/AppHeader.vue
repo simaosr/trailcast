@@ -4,7 +4,6 @@
         <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
             <div class="flex items-center">
                 <div class="text-4xl font-bold text-green-600">TRAILCAST</div>
-                <div class="text-sm text-gray-400 ml-2">your hike planning buddy</div>
             </div>
         </div>
     </nav>

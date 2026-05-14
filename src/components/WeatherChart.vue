@@ -31,6 +31,18 @@ const props = defineProps({
     labels: {
         type: Array,
         required: true
+    },
+    data2: {
+        type: Array,
+        default: null
+    },
+    color2: {
+        type: String,
+        default: null
+    },
+    label2: {
+        type: String,
+        default: null
     }
 });
 
@@ -59,25 +71,44 @@ const renderChart = () => {
     }
 
     // Create new chart instance
+    const datasets = [
+        {
+            label: props.label,
+            data: props.data,
+            borderColor: props.color,
+            backgroundColor: createGradient(ctx, props.color),
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: props.color,
+            pointBorderColor: '#fff',
+            pointHoverRadius: 5,
+            fill: true,
+            tension: 0.4,
+        },
+    ];
+
+    if (props.data2 && props.color2) {
+        datasets.push({
+            label: props.label2 || '',
+            data: props.data2,
+            borderColor: props.color2,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [4, 3],
+            pointRadius: 2,
+            pointBackgroundColor: props.color2,
+            pointBorderColor: '#fff',
+            pointHoverRadius: 4,
+            fill: false,
+            tension: 0.4,
+        });
+    }
+
     chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: props.labels,
-            datasets: [
-                {
-                    label: props.label,
-                    data: props.data,
-                    borderColor: props.color,
-                    backgroundColor: createGradient(ctx, props.color),
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    pointBackgroundColor: props.color,
-                    pointBorderColor: '#fff',
-                    pointHoverRadius: 5,
-                    fill: true,
-                    tension: 0.4,
-                },
-            ],
+            datasets,
         },
         options: {
             responsive: true,
@@ -98,7 +129,8 @@ const renderChart = () => {
                     borderWidth: 1,
                 },
                 legend: {
-                    display: false,
+                    display: !!props.data2,
+                    labels: { color: '#6b7280', font: { size: 11 }, boxWidth: 24 },
                 },
             },
             scales: {
