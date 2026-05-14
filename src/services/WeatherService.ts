@@ -7,6 +7,7 @@ interface ForecastDay {
     wind: number;
     gust: number;
     rain: number;
+    rainMm: number;
 }
 
 interface HourlyForecast {
@@ -33,6 +34,7 @@ interface PositionWeatherData {
     temp: number;
     wind: number;
     rain: number;
+    rainProbability: number;
     sun: number;
     elevation: number;
 }
@@ -44,7 +46,7 @@ export class WeatherService {
         daily: ForecastDay[];
         location: string;
     }> {
-        const url = `${this.BASE_URL}?latitude=${position.lat}&longitude=${position.lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,windgusts_10m_max,precipitation_sum&timezone=auto`;
+        const url = `${this.BASE_URL}?latitude=${position.lat}&longitude=${position.lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,windgusts_10m_max,precipitation_probability_max,precipitation_sum&timezone=auto`;
 
         try {
             const response = await fetch(url);
@@ -56,7 +58,8 @@ export class WeatherService {
                 tempMin: Math.round(data.daily.temperature_2m_min[index]),
                 wind: Math.round(data.daily.windspeed_10m_max[index]),
                 gust: Math.round(data.daily.windgusts_10m_max[index]),
-                rain: data.daily.precipitation_sum[index]
+                rain: data.daily.precipitation_probability_max[index],
+                rainMm: data.daily.precipitation_sum[index]
             }));
 
             const location = await this.getLocationName(position.lat, position.lon);
@@ -131,17 +134,22 @@ export class WeatherService {
     }
 
     static async getWeatherDataForPosition(position: ExtendedWeatherPosition): Promise<PositionWeatherData> {
-        const url = `${this.BASE_URL}?latitude=${position.lat}&longitude=${position.lon}&hourly=temperature_2m,windspeed_10m,precipitation,uv_index&elevation=${position.elevation || 0}&start=${position.time.toISOString().split('.')[0]}&end=${position.time.toISOString().split('.')[0]}`;
+        const dateStr = position.time.toISOString().split('T')[0]; // YYYY-MM-DD
+        const url = `${this.BASE_URL}?latitude=${position.lat}&longitude=${position.lon}&hourly=temperature_2m,windspeed_10m,precipitation,precipitation_probability,uv_index&elevation=${position.elevation || 0}&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
 
         try {
             const response = await fetch(url);
             const data = await response.json();
-            
+
+            // API returns 24 hourly values for the requested day; pick the matching hour
+            const hour = position.time.getHours();
+
             return {
-                temp: data.hourly.temperature_2m[0],
-                wind: data.hourly.windspeed_10m[0],
-                rain: data.hourly.precipitation[0],
-                sun: data.hourly.uv_index[0],
+                temp: data.hourly.temperature_2m[hour],
+                wind: data.hourly.windspeed_10m[hour],
+                rain: data.hourly.precipitation[hour],
+                rainProbability: data.hourly.precipitation_probability[hour],
+                sun: data.hourly.uv_index[hour],
                 elevation: data.elevation,
             };
         } catch (error) {
@@ -150,6 +158,7 @@ export class WeatherService {
                 temp: 0,
                 wind: 0,
                 rain: 0,
+                rainProbability: 0,
                 sun: 0,
                 elevation: position.elevation || 0,
             };

@@ -3,10 +3,8 @@
     <app-header />
     <div class="main-content flex flex-col md:flex-row">
       <upload-tab :active="activeTab === 'tab1' || isDesktop" @hike-loaded="onHikeLoaded" />
-      <the-hike-tab :active="activeTab === 'tab2' || isDesktop" :hike-data="hikeData" />
+      <forecast-week :active="activeTab === 'tab2' || isDesktop" :hike-data="hikeData" />
       <forecast-tab :active="activeTab === 'tab3' || isDesktop" :hike-data="hikeData" :chart-types="chartTypes" />
-      <hike-stats :active="activeTab === 'tab4' || isDesktop" :hike-data="hikeData" />
-
       <!-- Mobile navigation - only shown on small screens -->
       <tab-navigation :is-desktop="isDesktop" :active-tab="activeTab" @tab-changed="setActiveTab" />
     </div>
@@ -17,11 +15,9 @@
 import { ref, reactive, onMounted, watch } from 'vue';
 import AppHeader from '@/components/AppHeader.vue';
 import UploadTab from '@/components/UploadTab.vue';
+import ForecastWeek from '@/components/ForecastWeek.vue';
 import ForecastTab from '@/components/ForecastTab.vue';
 import TabNavigation from '@/components/TabNavigation.vue';
-import MapTab from '@/components/MapTab.vue';
-import HikeStats from '@/components/HikeStats.vue';
-import TheHikeTab from '@/components/TheHikeTab.vue';
 
 // State
 const activeTab = ref('tab1');
@@ -42,11 +38,12 @@ const hikeData = reactive({
 });
 
 const chartTypes = [
-  { id: 'weatherChartTemp', label: ['Temperature (°C)'], color: '#ff0000' },
-  { id: 'weatherChartRain', label: ['Rain (mm)'], color: '#0000ff' },
-  { id: 'weatherChartWind', label: ['Wind (km/h)'], color: '#00ff00' },
-  { id: 'weatherChartSun', label: ['UV index'], color: '#ffff00' },
-  { id: 'weatherChartElevation', label: ['Elevation (m)'], color: '#ff00ff' }
+  { id: 'weatherChartTemp', label: ['Temperature (°C)'], color: '#ef4444' },
+  { id: 'weatherChartRainProb', label: ['Rain Probability (%)'], color: '#3b82f6' },
+  { id: 'weatherChartRain', label: ['Precipitation (mm)'], color: '#60a5fa' },
+  { id: 'weatherChartWind', label: ['Wind (km/h)'], color: '#10b981' },
+  { id: 'weatherChartSun', label: ['UV Index'], color: '#f59e0b' },
+  { id: 'weatherChartElevation', label: ['Elevation (m)'], color: '#8b5cf6' }
 ];
 
 // Methods
@@ -98,10 +95,9 @@ body {
 
 .main-content {
   flex: 1;
-  padding: 20px;
+  padding: 8px;
   overflow-y: auto;
   padding-top: 5rem;
-  /* Adjust this value based on the height of your header */
 }
 
 @media (max-width: 768px) {

@@ -1,6 +1,9 @@
 <template>
-    <div class="">
-        <canvas :id="chartId" ref="chartCanvas"></canvas>
+    <div class="chart-wrapper">
+        <p class="chart-title">{{ Array.isArray(label) ? label[0] : label }}</p>
+        <div class="chart-container">
+            <canvas :id="chartId" ref="chartCanvas"></canvas>
+        </div>
     </div>
 </template>
 
@@ -84,58 +87,49 @@ const renderChart = () => {
                     enabled: true,
                     mode: 'index',
                     intersect: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: { size: 14 },
+                    backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                    titleColor: '#f9fafb',
+                    bodyColor: '#d1d5db',
+                    titleFont: { size: 12, weight: 'bold' },
                     bodyFont: { size: 12 },
                     padding: 10,
+                    cornerRadius: 8,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
                 },
                 legend: {
                     display: false,
-                    position: 'top',
-                    labels: {
-                        color: '#333',
-                        font: { size: 12 },
-                    },
                 },
             },
             scales: {
                 x: {
-                    title: {
-                        display: true,
-                        text: 'Time into hike (hours)',
-                        color: '#666',
-                        font: { size: 12 },
-                    },
                     grid: {
-                        color: '#eee',
-                        borderColor: '#eee',
+                        color: 'rgba(0,0,0,0.04)',
+                        drawBorder: false,
                     },
                     ticks: {
-                        color: '#666',
+                        color: '#9ca3af',
                         font: { size: 10 },
+                        maxRotation: 0,
                     },
+                    border: { display: false },
                 },
                 y: {
-                    title: {
-                        display: true,
-                        text: props.label,
-                        color: '#666',
-                        font: { size: 12 },
-                    },
                     grid: {
-                        color: '#eee',
-                        borderColor: '#eee',
+                        color: 'rgba(0,0,0,0.04)',
+                        drawBorder: false,
                     },
                     ticks: {
-                        color: '#666',
+                        color: '#9ca3af',
                         font: { size: 10 },
                     },
+                    border: { display: false },
                     beginAtZero: true,
                 },
             },
             animation: {
-                duration: 1000,
-                easing: 'easeInOutQuart',
+                duration: 600,
+                easing: 'easeOutQuart',
             },
         },
     });
@@ -164,4 +158,26 @@ onUnmounted(() => {
 
 </script>
 
-<style scoped></style>
+<style scoped>
+.chart-wrapper {
+    margin-bottom: 2rem;
+    background: #fff;
+    border-radius: 12px;
+    padding: 1rem 1rem 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.chart-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin: 0 0 0.5rem 0;
+}
+
+.chart-container {
+    position: relative;
+    height: 160px;
+}
+</style>

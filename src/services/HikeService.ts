@@ -33,8 +33,6 @@ interface HikeData {
 }
 
 export default class HikeService {
-  private readonly WALKING_SPEED = 5; // km/h
-
   // Parse GPX file text into track points
   parseGPX(gpxText: string): TrackPoint[] {
     const parser = new DOMParser();
@@ -47,7 +45,7 @@ export default class HikeService {
   }
 
   // Calculate positions along the route at regular time intervals
-  calculatePositions(points: TrackPoint[], startTime: Date): Position[] {
+  calculatePositions(points: TrackPoint[], startTime: Date, speedKmh = 5): Position[] {
     const positions: Position[] = [];
     let currentTime = new Date(startTime);
     let accumulatedDistance = 0;
@@ -55,7 +53,7 @@ export default class HikeService {
 
     while (currentIndex < points.length - 1) {
       const timeIncrement = 15; // minutes
-      const distanceIncrement = (this.WALKING_SPEED * timeIncrement) / 60; // km
+      const distanceIncrement = (speedKmh * timeIncrement) / 60; // km
 
       // Find segment where hiker would be after this time increment
       while (currentIndex < points.length - 1) {
@@ -116,20 +114,19 @@ export default class HikeService {
   }
 
   // Calculate basic stats that don't require time or weather data
-  calculateBasicStats(trackPoints: TrackPoint[]): { 
-    denivele: number;
+  calculateBasicStats(trackPoints: TrackPoint[]): {
+    elevationGain: number;
+    elevationLoss: number;
     distance: number;
   } {
-    const stats = {
-      denivele: 0,
-      distance: 0
-    };
+    const stats = { elevationGain: 0, elevationLoss: 0, distance: 0 };
 
-    // Calculate elevation gain and distance
     for (let i = 0; i < trackPoints.length - 1; i++) {
       const a = trackPoints[i];
       const b = trackPoints[i + 1];
-      stats.denivele += (b.ele || 0) - (a.ele || 0);
+      const diff = (b.ele || 0) - (a.ele || 0);
+      if (diff > 0) stats.elevationGain += diff;
+      else stats.elevationLoss += diff;
       stats.distance += this.haversine(a, b);
     }
 
@@ -150,7 +147,7 @@ export default class HikeService {
 
     // Get basic stats first
     const basicStats = this.calculateBasicStats(hikeData.trackPoints);
-    stats.denivele = basicStats.denivele;
+    stats.denivele = basicStats.elevationGain;
 
     // calculate metrics from weather data if available
     if (weatherData) {
