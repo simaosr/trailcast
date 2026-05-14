@@ -37,7 +37,6 @@
                 <div v-for="(hour, index) in hourlyForecast" :key="index" class="flex flex-col items-center">
                     <span class="font-semibold text-lg">{{ hour.temp }}°C</span>
 
-                    <!-- Weather Icon - changes based on conditions -->
                     <svg v-if="hour.condition === 'sunny'" class="h-10 w-10 fill-current text-gray-400 mt-3"
                         xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                         <path d="M0 0h24v24H0V0z" fill="none" />
@@ -67,11 +66,61 @@
             </div>
         </div>
 
+        <!-- Available days filter -->
+        <div v-if="bestStart" class="w-full max-w-screen-sm mt-6">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Available days</p>
+
+            <!-- Preset buttons -->
+            <div class="flex gap-2 mb-3">
+                <button v-for="preset in PRESETS" :key="preset.id" @click="applyPreset(preset.id)"
+                    :class="activePreset === preset.id
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+                    class="px-3 py-1 text-xs font-semibold rounded-full transition-colors">
+                    {{ preset.label }}
+                </button>
+            </div>
+
+            <!-- Day chips -->
+            <div class="flex flex-wrap gap-1.5">
+                <button v-for="entry in bestStart.dayScores" :key="entry.date"
+                    @click="toggleDate(entry.date)"
+                    :class="availableDates.has(entry.date)
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-gray-100 text-gray-400'"
+                    class="px-2.5 py-1 text-xs font-semibold rounded-full transition-colors">
+                    {{ formatChipLabel(entry.date) }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Best Start Recommendation -->
+        <div v-if="filteredBestStart"
+            class="w-full max-w-screen-sm bg-emerald-50 border border-emerald-200 p-4 mt-4 rounded-xl shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600 mb-1">Recommended start</p>
+            <p class="text-lg font-bold text-emerald-800">
+                {{ formatDate(filteredBestStart.bestDay) }} at {{ formatHour(filteredBestStart.bestHour) }}
+            </p>
+            <p class="text-xs text-emerald-600 mt-0.5">Best rain, wind &amp; temperature over your hike window</p>
+        </div>
+        <div v-else-if="bestStart"
+            class="w-full max-w-screen-sm bg-gray-50 border border-gray-200 p-4 mt-4 rounded-xl text-sm text-gray-400">
+            No available days selected.
+        </div>
+
         <!-- 7-Day Forecast Card -->
         <div
-            class="flex flex-col space-y-6 w-full max-w-screen-sm bg-white p-5 mt-10 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
-            <div v-for="(day, index) in forecast" :key="index" class="flex justify-between items-center">
-                <span class="font-semibold text-lg w-1/4">{{ formatDate(day.date) }}</span>
+            class="flex flex-col space-y-6 w-full max-w-screen-sm bg-white p-5 mt-6 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
+            <div v-for="(day, index) in forecast" :key="index"
+                class="flex justify-between items-center rounded-lg px-2 py-1 transition-colors"
+                :class="filteredBestStart && day.date === filteredBestStart.bestDay ? 'bg-emerald-50' : ''">
+                <div class="flex items-center gap-1.5 w-1/4">
+                    <span class="font-semibold text-lg" :class="!availableDates.has(day.date) && bestStart ? 'text-gray-300' : ''">
+                        {{ formatDate(day.date) }}
+                    </span>
+                    <span v-if="filteredBestStart && day.date === filteredBestStart.bestDay"
+                        class="text-emerald-500 text-sm" title="Best available day">★</span>
+                </div>
 
                 <!-- Precipitation chance -->
                 <div class="flex flex-col items-end w-1/4 pr-4">
@@ -110,70 +159,130 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { WeatherService } from '../services/WeatherService';
 import { DateService } from '../services/DateService';
+import HikeService from '../services/HikeService';
 
 const props = defineProps({
-    active: {
-        type: Boolean,
-        default: false
-    },
-    hikeData: {
-        type: Object,
-        required: true
-    }
+    active: { type: Boolean, default: false },
+    hikeData: { type: Object, required: true }
 });
 
 const forecast = ref([]);
 const hourlyForecast = ref([]);
 const location = ref('');
+const bestStart = ref(null);
+
+// 'any' | 'weekends' | 'weekdays' | null (= custom)
+const activePreset = ref('any');
+const availableDates = ref(new Set());
+
+const hikeService = new HikeService();
+
+const PRESETS = [
+    { id: 'any',      label: 'Any day' },
+    { id: 'weekends', label: 'Weekends' },
+    { id: 'weekdays', label: 'Weekdays' },
+];
+
+// 0 = Sun, 6 = Sat
+const WEEKEND_DAYS = new Set([0, 6]);
+
+const applyPreset = (presetId) => {
+    activePreset.value = presetId;
+    if (!bestStart.value) return;
+    const all = bestStart.value.dayScores.map(s => s.date);
+    if (presetId === 'any') {
+        availableDates.value = new Set(all);
+    } else if (presetId === 'weekends') {
+        availableDates.value = new Set(all.filter(d => WEEKEND_DAYS.has(new Date(d + 'T12:00:00').getDay())));
+    } else if (presetId === 'weekdays') {
+        availableDates.value = new Set(all.filter(d => !WEEKEND_DAYS.has(new Date(d + 'T12:00:00').getDay())));
+    }
+};
+
+const toggleDate = (date) => {
+    const next = new Set(availableDates.value);
+    if (next.has(date)) {
+        if (next.size <= 1) return; // keep at least one
+        next.delete(date);
+    } else {
+        next.add(date);
+    }
+    availableDates.value = next;
+    activePreset.value = null;
+};
+
+const filteredBestStart = computed(() => {
+    if (!bestStart.value || availableDates.value.size === 0) return null;
+    const candidates = bestStart.value.dayScores.filter(s => availableDates.value.has(s.date));
+    if (candidates.length === 0) return null;
+    const best = candidates.reduce((a, b) => (b.score > a.score ? b : a));
+    return { bestDay: best.date, bestHour: best.bestHour };
+});
 
 const fetchForecast = async (hikeData) => {
-    // Use trackPoints if available, otherwise fallback to positions
-    const points = hikeData.trackPoints && hikeData.trackPoints.length > 0 ? hikeData.trackPoints : hikeData.positions;
+    const points = hikeData.trackPoints?.length > 0 ? hikeData.trackPoints : hikeData.positions;
     if (!points || points.length === 0) {
         forecast.value = [];
         location.value = '';
+        bestStart.value = null;
+        availableDates.value = new Set();
         return;
     }
 
+    const startPosition = { lat: points[0].lat, lon: points[0].lon };
+
     try {
-        const startPosition = {
-            lat: points[0].lat,
-            lon: points[0].lon
-        };
+        const hikeDurationHours = hikeData.trackPoints?.length > 0
+            ? hikeService.estimateDuration(hikeData.trackPoints)
+            : 4;
 
         const weatherData = await WeatherService.getForecast(startPosition);
-        
+        const bestStartData = await WeatherService.getBestStartTime(startPosition, hikeDurationHours);
+
         forecast.value = weatherData.daily;
         hourlyForecast.value = weatherData.hourly;
         location.value = weatherData.location;
+        bestStart.value = bestStartData;
+
+        // Default to all days enabled
+        availableDates.value = new Set(bestStartData.dayScores.map(s => s.date));
+        activePreset.value = 'any';
     } catch (error) {
         console.error('Error fetching forecast:', error);
         forecast.value = [];
         hourlyForecast.value = [];
         location.value = 'Error loading location';
+        bestStart.value = null;
+        availableDates.value = new Set();
     }
 };
 
-// Format date using DateService
 const formatDate = (dateStr) => DateService.formatDate(dateStr);
 
-// Watch for changes in hikeData and re-initialize the forecast
+const formatChipLabel = (dateStr) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    const day = d.toLocaleDateString(undefined, { weekday: 'short' });
+    return `${day} ${d.getDate()}`;
+};
+
+const formatHour = (hour) => {
+    const d = new Date();
+    d.setHours(hour, 0, 0, 0);
+    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
+
 watch(() => props.hikeData, (newHikeData) => {
-    if ((newHikeData.trackPoints && newHikeData.trackPoints.length > 0) || 
-        (newHikeData.positions && newHikeData.positions.length > 0)) {
+    if ((newHikeData.trackPoints?.length > 0) || (newHikeData.positions?.length > 0)) {
         fetchForecast(newHikeData);
     }
 }, { deep: true });
 
-// Initialize with saved data if available
 onMounted(() => {
     const savedData = localStorage.getItem('hikeData');
-    if (savedData) {
-        fetchForecast(JSON.parse(savedData));
-    }
+    if (savedData) fetchForecast(JSON.parse(savedData));
 });
 </script>
 
