@@ -139,11 +139,6 @@ export default class HikeService {
     return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
   }
 
-  estimateDuration(trackPoints: TrackPoint[], speedKmh = 5): number {
-    const { distance } = this.calculateBasicStats(trackPoints);
-    return distance / speedKmh;
-  }
-
   // Calculate basic stats that don't require time or weather data
   calculateBasicStats(trackPoints: TrackPoint[]): {
     elevationGain: number;

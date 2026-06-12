@@ -81,10 +81,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { WeatherService } from '../services/WeatherService';
 import { DateService } from '../services/DateService';
-import HikeService from '../services/HikeService';
 
 const props = defineProps({
     active: { type: Boolean, default: false },
@@ -111,8 +110,6 @@ const fetchForecast = async (trackPoints) => {
     if (!trackPoints?.length) {
         forecast.value = [];
         location.value = '';
-        bestStart.value = null;
-        availableDates.value = new Set();
         return;
     }
 
@@ -124,11 +121,6 @@ const fetchForecast = async (trackPoints) => {
         forecast.value = weatherData.daily;
         hourlyForecast.value = weatherData.hourly;
         location.value = weatherData.location;
-        bestStart.value = bestStartData;
-
-        // Default to all days enabled
-        availableDates.value = new Set(bestStartData.dayScores.map(s => s.date));
-        activePreset.value = 'any';
     } catch (error) {
         console.error('Error fetching forecast:', error);
         errorMsg.value = 'Could not load the forecast. Check your connection and try again.';
