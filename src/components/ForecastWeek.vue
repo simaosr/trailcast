@@ -1,159 +1,81 @@
 <template>
-    <div id="tab2" class="tab-content" :class="{ active }"
-        style="padding:20px;background-color:white;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.08);margin-bottom:20px">
+    <div id="tab2" class="tab-content" :class="{ active }">
         <!-- Today's Weather Card -->
-        <div class="w-full max-w-screen-sm bg-white p-5 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
-            <div class="flex justify-between">
-                <div class="flex flex-col">
-                    <div class="flex items-end">
-                        <span class="text-6xl font-bold">{{ forecast.length ? forecast[0].tempMax : '--'
-                        }}</span>
-                        <span class="text-4xl text-gray-500 ml-2 mb-1">/ {{ forecast.length ? forecast[0].tempMin : '--'
-                        }}°C</span>
-                    </div>
-                    <span class="font-semibold mt-1 text-gray-500">{{ location || 'Loading...' }}</span>
-                    <div v-if="forecast.length" class="flex items-center gap-1.5 mt-1">
-                        <svg class="w-4 h-4 fill-current text-blue-400" viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg">
-                            <g transform="matrix(1,0,0,1,-4,-2)">
-                                <path d="M17.66,8L12.71,3.06C12.32,2.67 11.69,2.67 11.3,3.06L6.34,8C4.78,9.56 4,11.64 4,13.64C4,15.64 4.78,17.75 6.34,19.31C7.9,20.87 9.95,21.66 12,21.66C14.05,21.66 16.1,20.87 17.66,19.31C19.22,17.75 20,15.64 20,13.64C20,11.64 19.22,9.56 17.66,8ZM6,14C6.01,12 6.62,10.73 7.76,9.6L12,5.27L16.24,9.65C17.38,10.77 17.99,12 18,14C18.016,17.296 14.96,19.809 12,19.74C9.069,19.672 5.982,17.655 6,14Z" style="fill-rule:nonzero;" />
-                            </g>
-                        </svg>
-                        <span class="text-sm font-semibold text-blue-500">{{ Math.round(forecast[0].rain) }}%</span>
-                        <span class="text-sm text-gray-400">· {{ forecast[0].rainMm?.toFixed(1) ?? '0.0' }} mm</span>
-                    </div>
-                </div>
-
-                <!-- Weather Icon -->
-                <svg class="h-24 w-24 fill-current text-yellow-400" xmlns="http://www.w3.org/2000/svg"
+        <div class="w-full bg-white p-5 rounded-xl shadow-sm">
+            <div v-if="loading" class="flex items-center justify-center py-8 text-gray-400 text-sm">
+                <svg class="w-5 h-5 animate-spin mr-2" xmlns="http://www.w3.org/2000/svg" fill="none"
                     viewBox="0 0 24 24">
-                    <path d="M0 0h24v24H0V0z" fill="none" />
-                    <path
-                        d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79zM1 10.5h3v2H1zM11 .55h2V3.5h-2zm8.04 2.495l1.408 1.407-1.79 1.79-1.407-1.408zm-1.8 15.115l1.79 1.8 1.41-1.41-1.8-1.79zM20 10.5h3v2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm-1 4h2v2.95h-2zm-7.45-.96l1.41 1.41 1.79-1.8-1.41-1.41z" />
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
+                Loading forecast…
             </div>
 
-            <!-- Hourly Forecast -->
-            <div class="flex justify-between mt-12">
-                <div v-for="(hour, index) in hourlyForecast" :key="index" class="flex flex-col items-center">
-                    <span class="font-semibold text-lg">{{ hour.temp }}°C</span>
+            <div v-else-if="errorMsg" class="text-sm text-red-500 py-4">{{ errorMsg }}</div>
 
-                    <svg v-if="hour.condition === 'sunny'" class="h-10 w-10 fill-current text-gray-400 mt-3"
-                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0V0z" fill="none" />
-                        <path
-                            d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79zM1 10.5h3v2H1zM11 .55h2V3.5h-2zm8.04 2.495l1.408 1.407-1.79 1.79-1.407-1.408zm-1.8 15.115l1.79 1.8 1.41-1.41-1.8-1.79zM20 10.5h3v2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm-1 4h2v2.95h-2zm-7.45-.96l1.41 1.41 1.79-1.8-1.41-1.41z" />
-                    </svg>
+            <div v-else-if="forecast.length">
+                <div class="flex justify-between items-start">
+                    <div class="flex flex-col">
+                        <div class="flex items-end">
+                            <span class="text-6xl font-bold text-gray-800">{{ forecast[0].tempMax }}</span>
+                            <span class="text-3xl text-gray-400 ml-2 mb-1">/ {{ forecast[0].tempMin }}°C</span>
+                        </div>
+                        <span class="font-semibold mt-1 text-gray-500">{{ location || '…' }}</span>
+                        <span v-if="forecast[0].sunrise" class="text-xs text-gray-400 mt-1">
+                            🌅 {{ formatClock(forecast[0].sunrise) }} · 🌇 {{ formatClock(forecast[0].sunset) }}
+                        </span>
+                    </div>
+                    <span class="text-7xl leading-none" :title="describeCode(forecast[0].weathercode).label">
+                        {{ describeCode(forecast[0].weathercode).icon }}
+                    </span>
+                </div>
 
-                    <svg v-else-if="hour.condition === 'cloudy'" class="h-10 w-10 fill-current text-gray-400 mt-3"
-                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0V0z" fill="none" />
-                        <path
-                            d="M12.01 6c2.61 0 4.89 1.86 5.4 4.43l.3 1.5 1.52.11c1.56.11 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3h-13c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.95 6 12.01 6m0-2C9.12 4 6.6 5.64 5.35 8.04 2.35 8.36.01 10.91.01 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.64-4.96C18.68 6.59 15.65 4 12.01 4z" />
-                    </svg>
-
-                    <svg v-else class="h-10 w-10 fill-current text-gray-400 mt-3" xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24">
-                        <path d="M0 0h24v24H0V0z" fill="none" />
-                        <path
-                            d="M19.78,17.51c-2.47,0-6.57-1.33-8.68-5.43C8.77,7.57,10.6,3.6,11.63,2.01C6.27,2.2,1.98,6.59,1.98,12 c0,0.14,0.02,0.28,0.02,0.42C2.61,12.16,3.28,12,3.98,12c0,0,0,0,0,0c0-3.09,1.73-5.77,4.3-7.1C7.78,7.09,7.74,9.94,9.32,13 c1.57,3.04,4.18,4.95,6.8,5.86c-1.23,0.74-2.65,1.15-4.13,1.15c-0.5,0-1-0.05-1.48-0.14c-0.37,0.7-0.94,1.27-1.64,1.64 c0.98,0.32,2.03,0.5,3.11,0.5c3.5,0,6.58-1.8,8.37-4.52C20.18,17.5,19.98,17.51,19.78,17.51z" />
-                        <path
-                            d="M7,16l-0.18,0C6.4,14.84,5.3,14,4,14c-1.66,0-3,1.34-3,3s1.34,3,3,3c0.62,0,2.49,0,3,0c1.1,0,2-0.9,2-2 C9,16.9,8.1,16,7,16z" />
-                    </svg>
-
-                    <span class="font-semibold mt-1 text-sm">{{ hour.time }}</span>
-                    <span class="text-xs font-semibold text-gray-400">{{ hour.period }}</span>
+                <!-- Hourly Forecast -->
+                <div v-if="hourlyForecast.length" class="flex justify-between mt-8">
+                    <div v-for="(hour, index) in hourlyForecast" :key="index" class="flex flex-col items-center">
+                        <span class="font-semibold text-base text-gray-700">{{ hour.temp }}°</span>
+                        <span class="text-2xl my-1.5" :title="hour.condition">{{ hour.icon }}</span>
+                        <span class="font-medium text-xs text-gray-500">{{ hour.time }}</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Available days filter -->
-        <div v-if="bestStart" class="w-full max-w-screen-sm mt-6">
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2">Available days</p>
-
-            <!-- Preset buttons -->
-            <div class="flex gap-2 mb-3">
-                <button v-for="preset in PRESETS" :key="preset.id" @click="applyPreset(preset.id)"
-                    :class="activePreset === preset.id
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-                    class="px-3 py-1 text-xs font-semibold rounded-full transition-colors">
-                    {{ preset.label }}
-                </button>
+            <div v-else class="text-sm text-gray-400 py-4">
+                Load a hike to see the forecast at the trailhead.
             </div>
-
-            <!-- Day chips -->
-            <div class="flex flex-wrap gap-1.5">
-                <button v-for="entry in bestStart.dayScores" :key="entry.date"
-                    @click="toggleDate(entry.date)"
-                    :class="availableDates.has(entry.date)
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-gray-100 text-gray-400'"
-                    class="px-2.5 py-1 text-xs font-semibold rounded-full transition-colors">
-                    {{ formatChipLabel(entry.date) }}
-                </button>
-            </div>
-        </div>
-
-        <!-- Best Start Recommendation -->
-        <div v-if="filteredBestStart"
-            class="w-full max-w-screen-sm bg-emerald-50 border border-emerald-200 p-4 mt-4 rounded-xl shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600 mb-1">Recommended start</p>
-            <p class="text-lg font-bold text-emerald-800">
-                {{ formatDate(filteredBestStart.bestDay) }} at {{ formatHour(filteredBestStart.bestHour) }}
-            </p>
-            <p class="text-xs text-emerald-600 mt-0.5">Best rain, wind &amp; temperature over your hike window</p>
-        </div>
-        <div v-else-if="bestStart"
-            class="w-full max-w-screen-sm bg-gray-50 border border-gray-200 p-4 mt-4 rounded-xl text-sm text-gray-400">
-            No available days selected.
         </div>
 
         <!-- 7-Day Forecast Card -->
-        <div
-            class="flex flex-col space-y-6 w-full max-w-screen-sm bg-white p-5 mt-6 rounded-xl ring-8 ring-white ring-opacity-40 shadow-lg">
-            <div v-for="(day, index) in forecast" :key="index"
-                class="flex justify-between items-center rounded-lg px-2 py-1 transition-colors"
-                :class="filteredBestStart && day.date === filteredBestStart.bestDay ? 'bg-emerald-50' : ''">
-                <div class="flex items-center gap-1.5 w-1/4">
-                    <span class="font-semibold text-lg" :class="!availableDates.has(day.date) && bestStart ? 'text-gray-300' : ''">
-                        {{ formatDate(day.date) }}
-                    </span>
-                    <span v-if="filteredBestStart && day.date === filteredBestStart.bestDay"
-                        class="text-emerald-500 text-sm" title="Best available day">★</span>
+        <div v-if="forecast.length" class="flex flex-col w-full bg-white p-2 mt-4 rounded-xl shadow-sm">
+            <p class="text-[11px] text-gray-400 uppercase tracking-wide px-3 pt-2 pb-1">
+                Tap a day to plan your hike then
+            </p>
+            <button v-for="(day, index) in forecast" :key="index" @click="selectDay(day)"
+                class="flex justify-between items-center px-3 py-2.5 rounded-lg text-left transition-colors hover:bg-emerald-50"
+                :class="{ 'bg-emerald-50 ring-1 ring-emerald-200': day.date === selectedDate }">
+                <span class="font-semibold text-sm w-[4.5rem] text-gray-700">{{ formatDate(day.date) }}</span>
+
+                <span class="text-2xl shrink-0" :title="describeCode(day.weathercode).label">
+                    {{ describeCode(day.weathercode).icon }}
+                </span>
+
+                <!-- Precipitation -->
+                <div class="flex flex-col items-end w-16">
+                    <span class="text-sm font-semibold text-blue-500">{{ Math.round(day.rain) }}%</span>
+                    <span class="text-[11px] text-gray-400">{{ (day.rainMm ?? 0).toFixed(1) }} mm</span>
                 </div>
 
-                <!-- Precipitation chance -->
-                <div class="flex flex-col items-end w-1/4 pr-4">
-                    <div class="flex items-center">
-                        <span class="font-semibold text-blue-500">{{ Math.round(day.rain) }}%</span>
-                        <svg class="w-4 h-4 fill-current text-blue-400 ml-1" viewBox="0 0 16 20" xmlns="http://www.w3.org/2000/svg">
-                            <g transform="matrix(1,0,0,1,-4,-2)">
-                                <path
-                                    d="M17.66,8L12.71,3.06C12.32,2.67 11.69,2.67 11.3,3.06L6.34,8C4.78,9.56 4,11.64 4,13.64C4,15.64 4.78,17.75 6.34,19.31C7.9,20.87 9.95,21.66 12,21.66C14.05,21.66 16.1,20.87 17.66,19.31C19.22,17.75 20,15.64 20,13.64C20,11.64 19.22,9.56 17.66,8ZM6,14C6.01,12 6.62,10.73 7.76,9.6L12,5.27L16.24,9.65C17.38,10.77 17.99,12 18,14C18.016,17.296 14.96,19.809 12,19.74C9.069,19.672 5.982,17.655 6,14Z"
-                                    style="fill-rule:nonzero;" />
-                            </g>
-                        </svg>
-                    </div>
-                    <span class="text-xs text-gray-400">{{ day.rainMm?.toFixed(1) ?? '0.0' }} mm</span>
+                <!-- Wind -->
+                <div class="hidden sm:flex flex-col items-end w-16">
+                    <span class="text-sm font-medium text-emerald-600">{{ day.wind }}</span>
+                    <span class="text-[11px] text-gray-400">km/h</span>
                 </div>
-
-                <!-- Weather icon -->
-                <svg v-if="day.rain < 0.5" class="h-8 w-8 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24">
-                    <path d="M0 0h24v24H0V0z" fill="none" />
-                    <path
-                        d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79zM1 10.5h3v2H1zM11 .55h2V3.5h-2zm8.04 2.495l1.408 1.407-1.79 1.79-1.407-1.408zm-1.8 15.115l1.79 1.8 1.41-1.41-1.8-1.79zM20 10.5h3v2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm-1 4h2v2.95h-2zm-7.45-.96l1.41 1.41 1.79-1.8-1.41-1.41z" />
-                </svg>
-
-                <svg v-else class="h-8 w-8 fill-current shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path d="M0 0h24v24H0V0z" fill="none" />
-                    <path
-                        d="M12.01 6c2.61 0 4.89 1.86 5.4 4.43l.3 1.5 1.52.11c1.56.11 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3h-13c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.95 6 12.01 6m0-2C9.12 4 6.6 5.64 5.35 8.04 2.35 8.36.01 10.91.01 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.64-4.96C18.68 6.59 15.65 4 12.01 4z" />
-                </svg>
 
                 <!-- Temperature range -->
-                <span class="font-semibold text-lg w-1/4 text-right">{{ day.tempMin }}° / {{ day.tempMax }}°</span>
-            </div>
+                <span class="font-semibold text-sm w-20 text-right text-gray-700">
+                    <span class="text-gray-400">{{ day.tempMin }}°</span> / {{ day.tempMax }}°
+                </span>
+            </button>
         </div>
     </div>
 </template>
@@ -166,65 +88,27 @@ import HikeService from '../services/HikeService';
 
 const props = defineProps({
     active: { type: Boolean, default: false },
-    hikeData: { type: Object, required: true }
+    hikeData: { type: Object, required: true },
+    selectedDate: { type: String, default: '' },
 });
+
+const emit = defineEmits(['day-selected']);
 
 const forecast = ref([]);
 const hourlyForecast = ref([]);
 const location = ref('');
-const bestStart = ref(null);
+const loading = ref(false);
+const errorMsg = ref('');
 
-// 'any' | 'weekends' | 'weekdays' | null (= custom)
-const activePreset = ref('any');
-const availableDates = ref(new Set());
+const describeCode = (code) => WeatherService.describeWeatherCode(code);
+const formatDate = (dateStr) => DateService.formatDate(dateStr);
+const formatClock = (iso) =>
+    new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-const hikeService = new HikeService();
+const selectDay = (day) => emit('day-selected', day.date);
 
-const PRESETS = [
-    { id: 'any',      label: 'Any day' },
-    { id: 'weekends', label: 'Weekends' },
-    { id: 'weekdays', label: 'Weekdays' },
-];
-
-// 0 = Sun, 6 = Sat
-const WEEKEND_DAYS = new Set([0, 6]);
-
-const applyPreset = (presetId) => {
-    activePreset.value = presetId;
-    if (!bestStart.value) return;
-    const all = bestStart.value.dayScores.map(s => s.date);
-    if (presetId === 'any') {
-        availableDates.value = new Set(all);
-    } else if (presetId === 'weekends') {
-        availableDates.value = new Set(all.filter(d => WEEKEND_DAYS.has(new Date(d + 'T12:00:00').getDay())));
-    } else if (presetId === 'weekdays') {
-        availableDates.value = new Set(all.filter(d => !WEEKEND_DAYS.has(new Date(d + 'T12:00:00').getDay())));
-    }
-};
-
-const toggleDate = (date) => {
-    const next = new Set(availableDates.value);
-    if (next.has(date)) {
-        if (next.size <= 1) return; // keep at least one
-        next.delete(date);
-    } else {
-        next.add(date);
-    }
-    availableDates.value = next;
-    activePreset.value = null;
-};
-
-const filteredBestStart = computed(() => {
-    if (!bestStart.value || availableDates.value.size === 0) return null;
-    const candidates = bestStart.value.dayScores.filter(s => availableDates.value.has(s.date));
-    if (candidates.length === 0) return null;
-    const best = candidates.reduce((a, b) => (b.score > a.score ? b : a));
-    return { bestDay: best.date, bestHour: best.bestHour };
-});
-
-const fetchForecast = async (hikeData) => {
-    const points = hikeData.trackPoints?.length > 0 ? hikeData.trackPoints : hikeData.positions;
-    if (!points || points.length === 0) {
+const fetchForecast = async (trackPoints) => {
+    if (!trackPoints?.length) {
         forecast.value = [];
         location.value = '';
         bestStart.value = null;
@@ -232,16 +116,11 @@ const fetchForecast = async (hikeData) => {
         return;
     }
 
-    const startPosition = { lat: points[0].lat, lon: points[0].lon };
-
+    loading.value = true;
+    errorMsg.value = '';
     try {
-        const hikeDurationHours = hikeData.trackPoints?.length > 0
-            ? hikeService.estimateDuration(hikeData.trackPoints)
-            : 4;
-
-        const weatherData = await WeatherService.getForecast(startPosition);
-        const bestStartData = await WeatherService.getBestStartTime(startPosition, hikeDurationHours);
-
+        const start = { lat: trackPoints[0].lat, lon: trackPoints[0].lon };
+        const weatherData = await WeatherService.getForecast(start);
         forecast.value = weatherData.daily;
         hourlyForecast.value = weatherData.hourly;
         location.value = weatherData.location;
@@ -252,43 +131,33 @@ const fetchForecast = async (hikeData) => {
         activePreset.value = 'any';
     } catch (error) {
         console.error('Error fetching forecast:', error);
+        errorMsg.value = 'Could not load the forecast. Check your connection and try again.';
         forecast.value = [];
         hourlyForecast.value = [];
-        location.value = 'Error loading location';
-        bestStart.value = null;
-        availableDates.value = new Set();
+    } finally {
+        loading.value = false;
     }
 };
 
-const formatDate = (dateStr) => DateService.formatDate(dateStr);
-
-const formatChipLabel = (dateStr) => {
-    const d = new Date(dateStr + 'T12:00:00');
-    const day = d.toLocaleDateString(undefined, { weekday: 'short' });
-    return `${day} ${d.getDate()}`;
-};
-
-const formatHour = (hour) => {
-    const d = new Date();
-    d.setHours(hour, 0, 0, 0);
-    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-};
-
-watch(() => props.hikeData, (newHikeData) => {
-    if ((newHikeData.trackPoints?.length > 0) || (newHikeData.positions?.length > 0)) {
-        fetchForecast(newHikeData);
+// Only refetch when the actual track changes — not on every weather/chart update
+watch(
+    () => props.hikeData.trackPoints,
+    (trackPoints) => {
+        if (trackPoints?.length) fetchForecast(trackPoints);
     }
-}, { deep: true });
+);
 
 onMounted(() => {
-    const savedData = localStorage.getItem('hikeData');
-    if (savedData) fetchForecast(JSON.parse(savedData));
+    if (props.hikeData.trackPoints?.length) {
+        fetchForecast(props.hikeData.trackPoints);
+    }
 });
 </script>
 
 <style scoped>
 .tab-content {
     display: none;
+    padding: 20px;
 }
 
 .tab-content.active {
@@ -298,7 +167,7 @@ onMounted(() => {
 @media (max-width: 600px) {
     .tab-content {
         margin-bottom: 50px;
-        padding: 15px !important;
+        padding: 15px;
     }
 }
 

@@ -4,16 +4,20 @@
 
             <!-- Upload area -->
             <div>
-                <label for="gpxInput"
+                <label for="gpxInput" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
+                    @drop.prevent="handleDrop"
                     class="flex items-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors px-4"
-                    :class="hasTrack
-                        ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
-                        : 'border-gray-300 bg-gray-50 hover:bg-gray-100'">
+                    :class="isDragging
+                        ? 'border-emerald-500 bg-emerald-100'
+                        : hasTrack
+                            ? 'border-emerald-400 bg-emerald-50 hover:bg-emerald-100'
+                            : 'border-gray-300 bg-gray-50 hover:bg-gray-100'">
 
                     <!-- Empty state -->
-                    <div v-if="!hasTrack" class="flex items-center justify-between w-full">
+                    <div v-if="!hasTrack" class="flex items-center justify-between w-full pointer-events-none">
                         <p class="text-sm text-gray-400">Drop a GPX file or click to browse</p>
-                        <span class="shrink-0 ml-3 px-3 py-1.5 bg-emerald-500 text-white text-sm font-medium rounded-md flex items-center gap-1.5">
+                        <span
+                            class="shrink-0 ml-3 px-3 py-1.5 bg-emerald-500 text-white text-sm font-medium rounded-md flex items-center gap-1.5">
                             <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -24,7 +28,7 @@
                     </div>
 
                     <!-- Loaded state: filename left, stats right -->
-                    <div v-else class="flex items-center justify-between w-full">
+                    <div v-else class="flex items-center justify-between w-full pointer-events-none">
                         <div class="flex items-center gap-2 min-w-0">
                             <svg class="w-5 h-5 shrink-0 text-emerald-500" xmlns="http://www.w3.org/2000/svg"
                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -34,13 +38,19 @@
                         </div>
                         <div class="flex flex-col items-end gap-0.5 shrink-0 ml-3 text-xs font-medium text-emerald-700">
                             <span>{{ trackStats.distance }} km</span>
-                            <span>↑ {{ trackStats.elevationGain }} m</span>
-                            <span>↓ {{ trackStats.elevationLoss }} m</span>
+                            <span>↑ {{ trackStats.elevationGain }} m · ↓ {{ trackStats.elevationLoss }} m</span>
+                            <span v-if="trackStats.maxElevation !== null">⛰ {{ trackStats.maxElevation }} m max</span>
                         </div>
                     </div>
 
-                    <input type="file" id="gpxInput" accept=".gpx" @change="handleFileChange" class="hidden" />
+                    <input type="file" id="gpxInput" accept=".gpx,application/gpx+xml" @change="handleFileChange"
+                        class="hidden" />
                 </label>
+            </div>
+
+            <!-- Parse / load errors -->
+            <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3">
+                {{ error }}
             </div>
 
             <!-- Map (shown once a track is loaded) -->
@@ -72,12 +82,14 @@
 
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import L from 'leaflet';
 import HikeService from '@/services/HikeService';
+import { WeatherService } from '@/services/WeatherService';
 
 const props = defineProps({
-    active: { type: Boolean, required: true }
+    active: { type: Boolean, required: true },
+    hikeData: { type: Object, required: true },
 });
 
 const emit = defineEmits(['hike-loaded']);
@@ -86,10 +98,13 @@ const mapContainer = ref(null);
 const hasTrack = ref(false);
 const loadedFileName = ref('');
 const isFullscreen = ref(false);
-const trackStats = ref({ distance: 0, elevationGain: 0, elevationLoss: 0 });
+const isDragging = ref(false);
+const error = ref('');
+const trackStats = ref({ distance: 0, elevationGain: 0, elevationLoss: 0, maxElevation: null });
 
 let map = null;
 let trackLayer = null;
+let weatherMarkers = [];
 const hikeService = new HikeService();
 
 const initMap = (points) => {
@@ -120,30 +135,89 @@ const initMap = (points) => {
             icon: L.divIcon({ className: '', html: iconHtml('#ef4444'), iconSize: [12, 12], iconAnchor: [6, 6] })
         }).addTo(map).bindPopup('Finish');
 
+        renderWeatherMarkers();
         setTimeout(() => map.invalidateSize(), 0);
     });
+};
+
+// Show forecast weather along the route once it has been fetched
+const renderWeatherMarkers = () => {
+    if (!map) return;
+    weatherMarkers.forEach((m) => m.remove());
+    weatherMarkers = [];
+
+    const positions = props.hikeData.positions || [];
+    const weather = props.hikeData.weather || [];
+    if (!positions.length || positions.length !== weather.length) return;
+
+    // At most ~8 markers so the map stays readable
+    const step = Math.max(1, Math.round(positions.length / 8));
+    for (let i = 0; i < positions.length; i += step) {
+        const pos = positions[i];
+        const w = weather[i];
+        const info = WeatherService.describeWeatherCode(w.weathercode);
+        const time = new Date(pos.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const marker = L.marker([pos.lat, pos.lon], {
+            icon: L.divIcon({
+                className: '',
+                html: `<div style="background:white;border-radius:8px;padding:1px 5px;box-shadow:0 1px 4px rgba(0,0,0,.3);font-size:12px;white-space:nowrap;display:flex;align-items:center;gap:2px">${info.icon}<b>${Math.round(w.temp)}°</b></div>`,
+                iconSize: null,
+                iconAnchor: [22, 11],
+            }),
+        }).addTo(map).bindPopup(
+            `<b>${time}</b> · ${pos.distance?.toFixed(1) ?? '?'} km<br>` +
+            `${info.icon} ${info.label}, ${Math.round(w.temp)}°C<br>` +
+            `💨 ${Math.round(w.wind)} km/h · 🌧 ${Math.round(w.rainProbability)}%`
+        );
+        weatherMarkers.push(marker);
+    }
+};
+
+const loadGpxText = async (gpxText, fileName) => {
+    error.value = '';
+    try {
+        const { trackPoints, name } = hikeService.parseGPX(gpxText);
+        const stats = hikeService.calculateBasicStats(trackPoints);
+        trackStats.value = {
+            distance: Math.round(stats.distance * 10) / 10,
+            elevationGain: Math.round(stats.elevationGain),
+            elevationLoss: Math.round(Math.abs(stats.elevationLoss)),
+            maxElevation: stats.maxElevation !== null ? Math.round(stats.maxElevation) : null,
+        };
+        loadedFileName.value = name || fileName;
+
+        const storedPoints = hikeService.downsample(trackPoints);
+        const hikeData = { trackPoints: storedPoints, name: loadedFileName.value, positions: [], weather: [] };
+        try {
+            localStorage.setItem('hikeData', JSON.stringify(hikeData));
+        } catch { /* storage full — the hike still works for this session */ }
+        emit('hike-loaded', hikeData);
+
+        hasTrack.value = true;
+        initMap(storedPoints);
+    } catch (e) {
+        console.error('GPX parse failed:', e);
+        error.value = e?.message || 'Could not read this GPX file.';
+    }
 };
 
 const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    await loadGpxText(await file.text(), file.name);
+    event.target.value = '';
+};
 
-    loadedFileName.value = file.name;
-    const gpxText = await file.text();
-    const trackPoints = hikeService.parseGPX(gpxText);
-    const stats = hikeService.calculateBasicStats(trackPoints);
-    trackStats.value = {
-        distance: Math.round(stats.distance * 10) / 10,
-        elevationGain: Math.round(stats.elevationGain),
-        elevationLoss: Math.round(Math.abs(stats.elevationLoss)),
-    };
-
-    const hikeData = { trackPoints, positions: [], weather: [] };
-    localStorage.setItem('hikeData', JSON.stringify(hikeData));
-    emit('hike-loaded', hikeData);
-
-    hasTrack.value = true;
-    initMap(trackPoints);
+const handleDrop = async (event) => {
+    isDragging.value = false;
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.gpx')) {
+        error.value = 'Please drop a .gpx file.';
+        return;
+    }
+    await loadGpxText(await file.text(), file.name);
 };
 
 const toggleFullscreen = async () => {
@@ -157,23 +231,35 @@ const toggleFullscreen = async () => {
     setTimeout(() => map?.invalidateSize(), 150);
 };
 
-onMounted(() => {
-    document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement) isFullscreen.value = false;
-    });
+// Re-render markers when the forecast for the hike arrives
+watch(() => props.hikeData.weather, () => renderWeatherMarkers());
 
-    const savedData = localStorage.getItem('hikeData');
-    if (savedData) {
-        const parsed = JSON.parse(savedData);
-        if (parsed.trackPoints?.length) {
-            hasTrack.value = true;
-            loadedFileName.value = 'Saved hike';
-            initMap(parsed.trackPoints);
-        }
+// Saved hike loaded by App after mount
+watch(() => props.hikeData.trackPoints, (points) => {
+    if (points?.length && !hasTrack.value) {
+        hasTrack.value = true;
+        loadedFileName.value = props.hikeData.name || 'Saved hike';
+        const stats = hikeService.calculateBasicStats(points);
+        trackStats.value = {
+            distance: Math.round(stats.distance * 10) / 10,
+            elevationGain: Math.round(stats.elevationGain),
+            elevationLoss: Math.round(Math.abs(stats.elevationLoss)),
+            maxElevation: stats.maxElevation !== null ? Math.round(stats.maxElevation) : null,
+        };
+        initMap(points);
     }
 });
 
+const onFullscreenChange = () => {
+    if (!document.fullscreenElement) isFullscreen.value = false;
+};
+
+onMounted(() => {
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+});
+
 onUnmounted(() => {
+    document.removeEventListener('fullscreenchange', onFullscreenChange);
     if (map) map.remove();
 });
 </script>

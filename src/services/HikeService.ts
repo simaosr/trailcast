@@ -4,93 +4,119 @@ interface TrackPoint {
   ele?: number;
 }
 
-interface Position extends TrackPoint {
+export interface Position extends TrackPoint {
   time: Date;
   elevation?: number;
+  /** Distance from the start of the hike, in km */
+  distance: number;
 }
 
-interface HikeStats {
-  maxTemp: number;
-  minTemp: number;
-  totalTime: number;
-  denivele: number;
-  accumulatedRain: number;
-  maxWind: number;
-}
-
-interface HikeData {
-  // Original GPX track points
+interface ParsedGPX {
   trackPoints: TrackPoint[];
-  // Calculated positions for weather data (optional)
-  positions?: Position[];
-  // Weather data (optional)
-  weather?: {
-    temp: number;
-    wind: number;
-    rain: number;
-    elevation: number;
-  }[];
+  name: string;
 }
+
+const POSITION_INTERVAL_MIN = 15;
+const MAX_STORED_POINTS = 2000;
 
 export default class HikeService {
-  // Parse GPX file text into track points
-  parseGPX(gpxText: string): TrackPoint[] {
+  // Parse GPX file text into track points. Throws a descriptive error on bad input.
+  parseGPX(gpxText: string): ParsedGPX {
     const parser = new DOMParser();
     const doc = parser.parseFromString(gpxText, 'text/xml');
-    return Array.from(doc.getElementsByTagName('trkpt')).map((trkpt) => ({
-      lat: parseFloat(trkpt.getAttribute('lat') || '0'),
-      lon: parseFloat(trkpt.getAttribute('lon') || '0'),
-      ele: parseFloat(trkpt.getElementsByTagName('ele')[0]?.textContent || '0'),
-    }));
+
+    if (doc.getElementsByTagName('parsererror').length > 0) {
+      throw new Error('This file is not valid GPX/XML.');
+    }
+
+    // Prefer track points, fall back to route points
+    let pointNodes = Array.from(doc.getElementsByTagName('trkpt'));
+    if (pointNodes.length === 0) {
+      pointNodes = Array.from(doc.getElementsByTagName('rtept'));
+    }
+
+    const trackPoints = pointNodes
+      .map((pt) => ({
+        lat: parseFloat(pt.getAttribute('lat') || ''),
+        lon: parseFloat(pt.getAttribute('lon') || ''),
+        ele: parseFloat(pt.getElementsByTagName('ele')[0]?.textContent || '') || undefined,
+      }))
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lon));
+
+    if (trackPoints.length < 2) {
+      throw new Error('No track found in this GPX file (need at least 2 points).');
+    }
+
+    const name =
+      doc.getElementsByTagName('name')[0]?.textContent?.trim() || '';
+
+    return { trackPoints, name };
   }
 
-  // Calculate positions along the route at regular time intervals
-  calculatePositions(points: TrackPoint[], startTime: Date, speedKmh = 5): Position[] {
-    const positions: Position[] = [];
-    let currentTime = new Date(startTime);
-    let accumulatedDistance = 0;
-    let currentIndex = 0;
-
-    while (currentIndex < points.length - 1) {
-      const timeIncrement = 15; // minutes
-      const distanceIncrement = (speedKmh * timeIncrement) / 60; // km
-
-      // Find segment where hiker would be after this time increment
-      while (currentIndex < points.length - 1) {
-        const segmentDistance = this.haversine(points[currentIndex], points[currentIndex + 1]);
-        if (accumulatedDistance + segmentDistance >= distanceIncrement) break;
-        accumulatedDistance += segmentDistance;
-        currentIndex++;
-      }
-
-      if (currentIndex >= points.length - 1) break; // End of track
-
-      // Calculate interpolation factor
-      const remaining = distanceIncrement - accumulatedDistance;
-      const segmentDistance = this.haversine(points[currentIndex], points[currentIndex + 1]);
-      const fraction = remaining / segmentDistance;
-
-      // Interpolate position
-      const newLat =
-        points[currentIndex].lat +
-        (points[currentIndex + 1].lat - points[currentIndex].lat) * fraction;
-      const newLon =
-        points[currentIndex].lon +
-        (points[currentIndex + 1].lon - points[currentIndex].lon) * fraction;
-
-      positions.push({
-        lat: newLat,
-        lon: newLon,
-        time: new Date(currentTime),
-        elevation: points[currentIndex].ele,
-      });
-
-      // Update tracking variables
-      currentTime.setMinutes(currentTime.getMinutes() + timeIncrement);
-      accumulatedDistance = 0;
-      currentIndex = Math.max(currentIndex, 0);
+  // Reduce point count for storage/rendering while keeping the shape of the track
+  downsample(points: TrackPoint[], maxPoints = MAX_STORED_POINTS): TrackPoint[] {
+    if (points.length <= maxPoints) return points;
+    const step = (points.length - 1) / (maxPoints - 1);
+    const result: TrackPoint[] = [];
+    for (let i = 0; i < maxPoints; i++) {
+      result.push(points[Math.round(i * step)]);
     }
+    return result;
+  }
+
+  // Calculate positions along the route at regular time intervals,
+  // always including the start and the finish.
+  calculatePositions(points: TrackPoint[], startTime: Date, speedKmh = 5): Position[] {
+    if (points.length < 2) return [];
+
+    // Cumulative distance along the track (km)
+    const cumDist: number[] = [0];
+    for (let i = 1; i < points.length; i++) {
+      cumDist.push(cumDist[i - 1] + this.haversine(points[i - 1], points[i]));
+    }
+    const totalDist = cumDist[cumDist.length - 1];
+    if (totalDist <= 0) return [];
+
+    const stepKm = (speedKmh * POSITION_INTERVAL_MIN) / 60;
+    const positions: Position[] = [];
+    let segIdx = 0;
+
+    for (let d = 0; d < totalDist; d += stepKm) {
+      while (segIdx < points.length - 2 && cumDist[segIdx + 1] < d) segIdx++;
+      positions.push(this.interpolate(points, cumDist, segIdx, d, startTime, speedKmh));
+    }
+
+    // Finish point with its actual arrival time
+    positions.push(this.interpolate(points, cumDist, points.length - 2, totalDist, startTime, speedKmh));
+
     return positions;
+  }
+
+  private interpolate(
+    points: TrackPoint[],
+    cumDist: number[],
+    segIdx: number,
+    distance: number,
+    startTime: Date,
+    speedKmh: number
+  ): Position {
+    const a = points[segIdx];
+    const b = points[segIdx + 1];
+    const segLen = cumDist[segIdx + 1] - cumDist[segIdx];
+    const f = segLen > 0 ? Math.min(Math.max((distance - cumDist[segIdx]) / segLen, 0), 1) : 0;
+
+    const eleA = a.ele ?? b.ele;
+    const eleB = b.ele ?? a.ele;
+    const ele = eleA !== undefined && eleB !== undefined ? eleA + (eleB - eleA) * f : undefined;
+
+    return {
+      lat: a.lat + (b.lat - a.lat) * f,
+      lon: a.lon + (b.lon - a.lon) * f,
+      ele,
+      elevation: ele,
+      time: new Date(startTime.getTime() + (distance / speedKmh) * 3_600_000),
+      distance: Math.round(distance * 100) / 100,
+    };
   }
 
   // Fetch weather data for each position using WeatherService
@@ -123,47 +149,42 @@ export default class HikeService {
     elevationGain: number;
     elevationLoss: number;
     distance: number;
+    maxElevation: number | null;
+    minElevation: number | null;
   } {
-    const stats = { elevationGain: 0, elevationLoss: 0, distance: 0 };
+    const stats = {
+      elevationGain: 0,
+      elevationLoss: 0,
+      distance: 0,
+      maxElevation: null as number | null,
+      minElevation: null as number | null,
+    };
 
     for (let i = 0; i < trackPoints.length - 1; i++) {
       const a = trackPoints[i];
       const b = trackPoints[i + 1];
-      const diff = (b.ele || 0) - (a.ele || 0);
-      if (diff > 0) stats.elevationGain += diff;
-      else stats.elevationLoss += diff;
+      if (a.ele !== undefined && b.ele !== undefined) {
+        const diff = b.ele - a.ele;
+        if (diff > 0) stats.elevationGain += diff;
+        else stats.elevationLoss += diff;
+      }
       stats.distance += this.haversine(a, b);
+    }
+
+    for (const p of trackPoints) {
+      if (p.ele === undefined) continue;
+      stats.maxElevation = stats.maxElevation === null ? p.ele : Math.max(stats.maxElevation, p.ele);
+      stats.minElevation = stats.minElevation === null ? p.ele : Math.min(stats.minElevation, p.ele);
     }
 
     return stats;
   }
 
-  // Calculate full stats including weather data (call this when weather data is available)
-  async calculateFullStats(hikeData: HikeData): Promise<HikeStats> {
-    const weatherData = hikeData.weather;
-    const stats: HikeStats = {
-      maxTemp: -Infinity,
-      minTemp: Infinity,
-      totalTime: 0,
-      denivele: 0,
-      accumulatedRain: 0,
-      maxWind: 0,
-    };
-
-    // Get basic stats first
-    const basicStats = this.calculateBasicStats(hikeData.trackPoints);
-    stats.denivele = basicStats.elevationGain;
-
-    // calculate metrics from weather data if available
-    if (weatherData) {
-      for (const weather of weatherData) {
-        stats.accumulatedRain += weather.rain;
-        stats.maxWind = Math.max(stats.maxWind, weather.wind);
-        stats.maxTemp = Math.max(stats.maxTemp, weather.temp);
-        stats.minTemp = Math.min(stats.minTemp, weather.temp);
-      }
-    }
-
-    return stats;
+  /**
+   * Estimated hike duration in hours, accounting for climbs
+   * (Naismith's rule: +1h per 600m of ascent).
+   */
+  estimateDuration(distanceKm: number, elevationGainM: number, speedKmh = 5): number {
+    return distanceKm / speedKmh + elevationGainM / 600;
   }
 }

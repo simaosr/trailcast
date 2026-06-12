@@ -2,9 +2,11 @@
   <div class="app">
     <app-header />
     <div class="main-content flex flex-col md:flex-row">
-      <upload-tab :active="activeTab === 'tab1' || isDesktop" @hike-loaded="onHikeLoaded" />
-      <forecast-week :active="activeTab === 'tab2' || isDesktop" :hike-data="hikeData" />
-      <forecast-tab :active="activeTab === 'tab3' || isDesktop" :hike-data="hikeData" :chart-types="chartTypes" @forecast-updated="onForecastUpdated" />
+      <upload-tab :active="activeTab === 'tab1' || isDesktop" :hike-data="hikeData" @hike-loaded="onHikeLoaded" />
+      <forecast-week :active="activeTab === 'tab2' || isDesktop" :hike-data="hikeData" :selected-date="selectedDate"
+        @day-selected="onDaySelected" />
+      <forecast-tab :active="activeTab === 'tab3' || isDesktop" :hike-data="hikeData" :selected-date="selectedDate"
+        @forecast-loaded="onForecastLoaded" />
       <!-- Mobile navigation - only shown on small screens -->
       <tab-navigation :is-desktop="isDesktop" :active-tab="activeTab" @tab-changed="setActiveTab" />
     </div>
@@ -12,7 +14,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import AppHeader from '@/components/AppHeader.vue';
 import UploadTab from '@/components/UploadTab.vue';
 import ForecastWeek from '@/components/ForecastWeek.vue';
@@ -22,29 +24,14 @@ import TabNavigation from '@/components/TabNavigation.vue';
 // State
 const activeTab = ref('tab1');
 const isDesktop = ref(window.innerWidth > 600);
+const selectedDate = ref('');
 
 const hikeData = reactive({
+  name: '',
   positions: [],
   weather: [],
   trackPoints: [],
-  stats: {
-    maxTemp: null,
-    minTemp: null,
-    totalTime: null,
-    denivele: null,
-    accumulatedRain: null,
-    maxWind: null
-  }
 });
-
-const chartTypes = [
-  { id: 'weatherChartTemp', label: ['Temperature (°C)'], color: '#ef4444' },
-  { id: 'weatherChartRainProb', label: ['Rain Probability (%)'], color: '#3b82f6' },
-  { id: 'weatherChartRain', label: ['Precipitation (mm/h)'], color: '#60a5fa' },
-  { id: 'weatherChartWind', label: ['Wind (km/h)'], color: '#10b981' },
-  { id: 'weatherChartSun', label: ['UV Index'], color: '#f59e0b' },
-  { id: 'weatherChartElevation', label: ['Elevation (m)'], color: '#8b5cf6' }
-];
 
 // Methods
 const setActiveTab = (tab) => {
@@ -58,30 +45,47 @@ const onForecastUpdated = ({ positions, weather }) => {
 
 const onHikeLoaded = (data) => {
   hikeData.trackPoints = data.trackPoints;
-  hikeData.stats = data.stats;
+  hikeData.name = data.name || '';
   hikeData.positions = [];
   hikeData.weather = [];
 };
 
+const onForecastLoaded = ({ positions, weather }) => {
+  hikeData.positions = positions;
+  hikeData.weather = weather;
+};
+
+const onDaySelected = (date) => {
+  selectedDate.value = date;
+  // On mobile, jump to the forecast tab so the choice is visible
+  if (!isDesktop.value) activeTab.value = 'tab3';
+};
+
+const handleResize = () => {
+  isDesktop.value = window.innerWidth > 600;
+};
+
 // Lifecycle hooks
 onMounted(() => {
-  const handleResize = () => {
-    isDesktop.value = window.innerWidth > 600;
-  };
-
   window.addEventListener('resize', handleResize);
 
-  // Load saved data if available
-  const savedData = localStorage.getItem('hikeData');
-  if (savedData) {
-    const parsedData = JSON.parse(savedData);
-    onHikeLoaded(parsedData);
+  // Load saved hike if available
+  try {
+    const savedData = localStorage.getItem('hikeData');
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      if (Array.isArray(parsedData?.trackPoints) && parsedData.trackPoints.length > 1) {
+        onHikeLoaded(parsedData);
+      }
+    }
+  } catch (e) {
+    console.error('Could not restore saved hike:', e);
+    localStorage.removeItem('hikeData');
   }
+});
 
-  // Cleanup event listener when component is unmounted
-  return () => {
-    window.removeEventListener('resize', handleResize);
-  };
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
 });
 </script>
 
@@ -90,6 +94,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: system-ui, -apple-system, Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  background-color: #f4f6f5;
 }
 
 .app {
